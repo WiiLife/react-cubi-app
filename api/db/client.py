@@ -21,7 +21,7 @@ class dbClient:
 
     async def initialize(self):
         if self.__initialized:
-            self.__logger.debug("DB already initilized")
+            self.__logger.debug("readonly connections already initilized")
             return
 
         for _ in range(self.__max_connections):
@@ -34,11 +34,11 @@ class dbClient:
             await self.__pool.put(conn)
 
         self.__initialized = True
-        self.__logger.debug(f"opened {self.__max_connections} connections to DB")
+        self.__logger.debug(f"opened {self.__max_connections} readonly connections")
 
     async def close(self):
         if not self.__initialized:
-            self.__logger.debug("DB never initilized")
+            self.__logger.debug("readonly never initilized")
             return
 
         while not self.__pool.empty():
@@ -46,7 +46,7 @@ class dbClient:
             conn.close()
 
         self.__initialized = False
-        self.__logger.debug("DB connections closed")
+        self.__logger.debug("readonly connections closed")
 
     @asynccontextmanager
     async def aquire(self):

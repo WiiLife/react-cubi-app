@@ -13,6 +13,12 @@ python -m api.main          # start the api
 cd frontend & npm run dev   # start the frontend
 ```
 
+### DATABASE URL
+
+
+https://gibonet.ch/duckdb/db_cubi_ustat.ddb
+
+
 ### DuckDB GUI
 
 requirements
@@ -20,5 +26,5 @@ requirements
 
 a visual helper to access a duckdb
 ```
-docker run -p 5522:5522 ghcr.io/caioricciuti/duck-ui
+    docker run -p 5522:5522 ghcr.io/caioricciuti/duck-ui
 ```

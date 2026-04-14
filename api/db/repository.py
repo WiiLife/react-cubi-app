@@ -7,7 +7,7 @@ import logging
 class Repository:
 
     def __init__(
-        self, file_path: Path, db_file_path: Path = Path("./api/db/cubiapp.duckdb")
+        self, file_path: Path, db_file_path: Path = Path("./api/db/db_cubi_ustat.ddb")
     ) -> None:
         self.file_path = file_path
         self.db_file_path = db_file_path

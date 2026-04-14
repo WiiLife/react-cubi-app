@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 app = FastAPI()
-files_path = Path("./cubi_UDSC_01_csv/cubi_UDSC_01.csv")
+files_path = Path("./data/cubi_UDSC_01.csv")
 repository = Repository(files_path)
 
 @app.get("/")
