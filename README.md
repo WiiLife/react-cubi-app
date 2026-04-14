@@ -6,11 +6,11 @@ requirements
 
 getting started
 ```
-python -m venv .venv    # create a python virtual environment
+python -m venv .venv        # create a python virtual environment
 pip install -r requirements.txt
 
-python -m api.main  # start the api
-cd frontend & npm run dev
+python -m api.main          # start the api
+cd frontend & npm run dev   # start the frontend
 ```
 
 ### DuckDB GUI
@@ -20,5 +20,5 @@ requirements
 
 a visual helper to access a duckdb
 ```
-duckDB gui: docker run -p 5522:5522 ghcr.io/caioricciuti/duck-ui
+docker run -p 5522:5522 ghcr.io/caioricciuti/duck-ui
 ```
