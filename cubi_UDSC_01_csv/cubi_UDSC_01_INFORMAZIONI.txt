@@ -1,0 +1,44 @@
+Esportazioni e importazioni: totale congiunturale e totale complessivo (in franchi), secondo la divisione di prodotti CPA, in Svizzera e in Ticino, dal 2016 al 2024
+
+Fonte: Statistica del commercio estero svizzero, Ufficio federale della dogana e della sicurezza dei confini, Berna
+Elaborazione: Ufficio di statistica (Ustat), Giubiasco
+
+
+
+https://www3.ti.ch/DFE/DR/USTAT/index.php?fuseaction=definizioni.fonti&tema=41&id=96&proID=277
+
+Versione dei dati: 27.05.2025
+
+Ultima modifica: 28.05.2025
+
+
+
+Variabili presenti nel cubo di dati:
+anno: anno di riferimento delle importazioni e delle esportazioni
+cantone: Ticino e Svizzera  
+CPA_2_1_descr: divisione CPA (Classificazione statistica dei prodotti associati alle attività)
+misura: totale congiunturale in franchi (Tot_congiunturale_in_fr.), totale complessivo in franchi (Tot_complessivo_in_fr.)
+statistica: esportazioni o importazioni
+
+
+Note:
+Il totale congiunturale esclude metalli preziosi, pietre preziose, oggetti d'arte e antichità.
+Il totale complessivo include metalli preziosi, pietre preziose, oggetti d'arte e antichità.
+
+Segni, simboli, abbreviazioni, sigle e concetti statistici usati nei prodotti dell'Ustat: http://www4.ti.ch/fileadmin/DFE/DR-USTAT/Prodotti/Definizioni/segni_sigle_simboli.pdf
+
+
+
+Glossario:
+Esportazioni (commercio estero): https://www3.ti.ch/DFE/DR/USTAT/index.php?fuseaction=definizioni.glossario&tema=41&id=381
+Importazioni (commercio estero): https://www3.ti.ch/DFE/DR/USTAT/index.php?fuseaction=definizioni.glossario&tema=41&id=609
+
+
+Ogni riga del file csv contiene una determinata statistica che si riferisce a una determinata combinazione di caratteristiche.
+I risultati statistici sono nella colonna "valore".
+La prima riga del file csv contiene i nomi delle colonne del cubo di dati.
+
+Ogni colonna è separata da un punto e virgola (;).
+
+Codifica/encoding del file csv: UTF-8
+

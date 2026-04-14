@@ -1,0 +1,1 @@
+duckDB gui: docker run -p 5522:5522 ghcr.io/caioricciuti/duck-ui
