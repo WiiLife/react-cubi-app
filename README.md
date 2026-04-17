@@ -22,9 +22,9 @@ https://gibonet.ch/duckdb/db_cubi_ustat.ddb
 ### DuckDB GUI
 
 requirements
-- docker
+- duckdb cli
 
 a visual helper to access a duckdb
 ```
-    docker run -p 5522:5522 ghcr.io/caioricciuti/duck-ui
+    duckdb -ui
 ```

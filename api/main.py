@@ -5,7 +5,8 @@ from pathlib import Path
 
 app = FastAPI()
 files_path = Path("./data/cubi_UDSC_01.csv")
-repository = Repository(files_path)
+db_file_path = Path("./api/db/db_cubi_ustat.ddb")
+repository = Repository(db_file_path, files_path)
 
 @app.get("/")
 async def home():
@@ -19,5 +20,5 @@ if __name__ == "__main__":
 
     setup_logging(level="DEBUG")
 
-    asyncio.run(repository.insert_data())
+    asyncio.run(repository.insert_csv_data())
     uvicorn.run("api.main:app", port=8000, reload=True)
