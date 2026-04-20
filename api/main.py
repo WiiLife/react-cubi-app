@@ -1,17 +1,11 @@
-from api.db.repository import Repository
+from api.db.repository import repository
 from fastapi import FastAPI
-from pathlib import Path
+
+from api.api import router as api_router
 
 
 app = FastAPI()
-files_path = Path("./data/cubi_UDSC_01.csv")
-db_file_path = Path("./api/db/db_cubi_ustat.ddb")
-repository = Repository(db_file_path, files_path)
-
-@app.get("/")
-async def home():
-    tables = await repository.tables()
-    return {"tables": tables}
+app.include_router(api_router)
 
 if __name__ == "__main__":
     from api.utils.logging import setup_logging

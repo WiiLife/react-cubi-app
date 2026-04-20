@@ -1,9 +1,23 @@
 from api.db.client import dbClient
+from pydantic import BaseModel
 from pathlib import Path
 from typing import List
+from enum import Enum
 import pandas as pd
 import logging
+import asyncio
 
+
+class SQLOperation(Enum):
+    SUM = "SUM"
+    COUNT = "COUNT"
+    AVG = "AVG"
+
+class SQLTypes(Enum):
+    INTEGER = "INTEGER"
+    DOUBLE = "DOUBLE"
+    VARCHAR = "VARCHAR"
+    OTHER = "OTHER"
 
 class Repository:
 
@@ -14,14 +28,40 @@ class Repository:
         self.logger = logging.getLogger((__name__).upper())
         self.tables_columns_cache = {}
 
+    def _format_list(self, values: List[str]) -> str:
+        return ', '.join(f'\"{val}\"' for val in values)
+
+    async def _check_column_type(self, table: str, column: str) -> SQLTypes:
+        query = f"""
+SELECT data_type
+FROM information_schema.columns
+WHERE table_name = '{table}' 
+AND column_name = '{column}';
+"""
+        async with self.client.aquire() as conn:
+            res = conn.sql(query).fetchall()
+            
+        try:
+            return SQLTypes(res[0][0])
+        except Exception:
+            return SQLTypes.OTHER
+
     async def _get_column_names(self, table) -> list[str]:
         try:
             async with self.client.aquire() as conn:
-                res = conn.sql(f"DESCRIBE {table}").fetchdf()
+                res = await asyncio.to_thread(lambda: conn.sql(f"DESCRIBE {table}").fetchdf())
+                self.logger.debug(f"got columns for table: {table}")
             return res.iloc[:, 0].to_list()
         except Exception as e:
             self.logger.warning(f"error while getting table columns: {e}")
             return []
+
+    async def _get_unique_values(self, table: str, column: str) -> List[str]:
+        async with self.client.aquire() as conn:
+            res = await asyncio.to_thread(
+                lambda: conn.sql(f"SELECT DISTINCT {column} FROM {table};").fetchall()
+            )
+        return [col[0] for col in res]
 
     async def _check_tables_exists(self, tables: list[str]):
         if not self.tables_columns_cache:
@@ -56,8 +96,12 @@ class Repository:
         table_names: list[str] = [row[0] for row in res]
 
         if not self.tables_columns_cache:
+            tasks = []
             for table in table_names:
-                self.tables_columns_cache[table] = await self._get_column_names(table)
+                tasks.append(self._get_column_names(table)) 
+            columns_list = await asyncio.gather(*tasks)
+            self.tables_columns_cache = dict(zip(table_names, columns_list))
+            self.logger.debug(f"cached {len(self.tables_columns_cache)} tables and column names")
         return table_names
 
     async def insert_csv_data(self):
@@ -68,43 +112,94 @@ class Repository:
         if table_name not in await self.tables():
             async with self.client.aquire_write() as conn:
                 self.logger.debug("inserting data...")
-                conn.sql(
-                    f"""
-                    CREATE TABLE {table_name} AS
-                    SELECT *
-                    FROM read_csv('{str(self.file_path)}');
-                    """
-                )
+                query = f"""
+CREATE TABLE {table_name} AS
+SELECT *
+FROM read_csv('{str(self.file_path)}');
+"""
+                await asyncio.to_thread(lambda: conn.sql(query))
             self.logger.debug(f"inserted {table_name} in db")
         else:
             self.logger.debug(f"table: {table_name} already present, skippping...")
 
-    async def get_table_columns(self, table: str):
+    async def get_table_columns_and_unique_values(self, table: str) -> dict[str, list[str]]:
         await self._check_tables_exists([table])
-        return await self._get_column_names(table)
 
-    async def get_unique_values(self, table, column):
-        pass
+        res = {}
+        columns = await self._get_column_names(table)
+        for col in columns:
+            
+            col_type = await self._check_column_type(table, col)
+            if col_type in (SQLTypes.INTEGER, SQLTypes.DOUBLE, SQLTypes.VARCHAR):
+                continue
+            
+            unique_values = await self._get_unique_values(table, col)            
+            res[col] = unique_values
+        return res
 
     async def select(self, table: str, columns: List[str]) -> pd.DataFrame:
         await self._check_columns_exist(table, columns)
 
-        exc = f"""
-              SELECT {', '.join(f'"{col}"' for col in columns)} FROM "{table}";
-              """
-
-        print(exc)
+        query = f"SELECT {self._format_list(columns)} FROM \"{table}\";"
 
         async with self.client.aquire() as conn:
-            res = conn.sql(exc).fetchdf()
+            res = await asyncio.to_thread(lambda: conn.sql(query).fetchdf())
         return res
+
+    async def pivot(
+        self,
+        table: str,
+        columns: List[str],
+        operation_column: str = "valore",
+        group_by_columns: List[str] | None = None,
+        operation: SQLOperation = SQLOperation.SUM,
+    ) -> pd.DataFrame:
+        await self._check_tables_exists([table])
+        await self._check_columns_exist(table, columns)
+        operation_column_type = await self._check_column_type(table, operation_column)
+
+        if not operation_column_type in (SQLTypes.INTEGER, SQLTypes.DOUBLE):
+            raise ValueError(f"operation column ({operation_column}) needs to be integer or doubble. Currently: {operation_column_type}")
+
+        if group_by_columns:
+            await self._check_columns_exist(table, group_by_columns)
+
+        if not group_by_columns:
+            all_columns = await self._get_column_names(table)
+            group_by_columns = list(set(all_columns) - set(columns) - {operation_column})
+
+        query = f"""
+PIVOT {table} 
+ON {self._format_list(columns)} 
+USING {operation.value}({operation_column}) 
+GROUP BY {self._format_list(group_by_columns)};
+"""
+
+        async with self.client.aquire() as conn:
+            res = await asyncio.to_thread(lambda: conn.sql(query).fetchdf())
+        return res
+
+    async def get_table(self, table: str) -> pd.DataFrame:
+        await self._check_tables_exists([table])
+
+        async with self.client.aquire() as conn:
+            res = await asyncio.to_thread(lambda: conn.sql(f"SELECT * FROM {table}").fetchdf())
+        return res
+
+files_path = Path("./data/cubi_UDSC_01.csv")
+db_file_path = Path("./api/db/db_cubi_ustat.ddb")
+repository = Repository(db_file_path, files_path)
 
 if __name__ == "__main__":
     import asyncio
+    from api.utils.logging import setup_logging
+
+    setup_logging(level="DEBUG")
 
     repo = Repository(Path("./api/db/db_cubi_ustat.ddb"))
     async def main():
-        res = await repo.select("cubi_POL_01", ["anno", "cont_descrizione", "valore"])
+        # res = await repo.get_unique_values("cubi_POL_01", "comune_2011")
+        res = await repo.pivot("cubi_RIFOS_01", ["nazionalità", "Stato_att"])
         return res
 
     res = asyncio.run(main())

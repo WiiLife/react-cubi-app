@@ -10,7 +10,7 @@ python -m venv .venv        # create a python virtual environment
 pip install -r requirements.txt
 
 python -m api.main          # start the api
-cd frontend & npm run dev   # start the frontend
+cd frontend/ & npm run dev   # start the frontend
 ```
 
 ### DATABASE URL
