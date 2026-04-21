@@ -9,8 +9,8 @@ getting started
 python -m venv .venv        # create a python virtual environment
 pip install -r requirements.txt
 
-python -m api.main          # start the api
-cd frontend/ & npm run dev   # start the frontend
+python -m api.main                      # start the api
+cd frontend/ & npm i & npm run dev      # install node modules and start frontend
 ```
 
 ### DATABASE URL
