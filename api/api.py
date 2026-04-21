@@ -40,6 +40,11 @@ async def pivot(table_name: str, payload: PivotBody = Body(...)):
     return Response(content=df.to_json(orient="records"), media_type="application/json")
 
 @router.get("/tables/{table_name}/columns")
+async def table_columns(table_name: str):
+    res = await repository.get_table_columns(table_name)
+    return res
+
+@router.get("/tables/{table_name}/columns-values")
 async def table_columns_unique_values(table_name: str):
     res = await repository.get_table_columns_and_unique_values(table_name)
     return res
