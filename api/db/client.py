@@ -5,6 +5,7 @@ from pathlib import Path
 from asyncio import Queue
 from duckdb import DuckDBPyConnection
 from contextlib import asynccontextmanager
+from api.db.repository import repository
 
 
 class dbClient:
@@ -82,6 +83,8 @@ class dbClient:
             finally:
                 conn.close()
                 self.__logger.debug("closed main write connection")
+                await repository._reset_cache()
+                self.__logger.debug("reset repository cache")
 
 
 if __name__ == "__main__":

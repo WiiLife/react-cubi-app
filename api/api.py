@@ -19,6 +19,7 @@ async def home():
     tables = await repository.tables()
     return {"tables": tables}
 
+# probably unnecessary
 @router.get("/tables/{table_name}")
 async def table(table_name: str):
     df = await repository.get_table(table_name)

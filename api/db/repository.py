@@ -28,25 +28,21 @@ class Repository:
         self.db_file_path = db_file_path
         self.client = dbClient(db_file_path)
         self.logger = logging.getLogger((__name__).upper())
-        self.tables_columns_cache = {}
+        self.tables_columns_cache: dict[str, pd.DataFrame] = {}
 
     def _format_list(self, values: List[str]) -> str:
         return ', '.join(f'\"{val}\"' for val in values)
 
-    async def _check_column_type(self, table: str, column: str) -> SQLTypes:
-        query = f"""
-SELECT data_type
-FROM information_schema.columns
-WHERE table_name = '{table}' 
-AND column_name = '{column}';
-"""
-        async with self.client.aquire() as conn:
-            res = conn.sql(query).fetchall()
-
+    def _asign_type(self, type_str: str):
         try:
-            return SQLTypes(res[0][0])
+            return SQLTypes(type_str)
         except Exception:
             return SQLTypes.OTHER
+
+    async def _check_column_type(self, table: str, column: str) -> SQLTypes:
+        rows = self.tables_columns_cache[table]
+        col_type = str(rows[rows.name == column])
+        return self._asign_type(col_type)
 
     async def _reset_cache(self):
         self.tables_columns_cache = {}
@@ -59,20 +55,24 @@ AND column_name = '{column}';
 
         tasks = []
         for table in table_names:
-            tasks.append(self._get_column_names(table)) 
-        columns_list = await asyncio.gather(*tasks)
-        self.tables_columns_cache = dict(zip(table_names, columns_list))
+            tasks.append(self._get_column_types(table))
+        columns_type = await asyncio.gather(*tasks)
+        self.tables_columns_cache = dict(zip(table_names, columns_type))
         self.logger.debug(f"cached {len(self.tables_columns_cache)} tables and column names")
 
-    async def _get_column_names(self, table) -> list[str]:
+    async def _get_column_types(self, table) -> pd.DataFrame:
+        query = f"""
+SELECT name, type 
+FROM pragma_table_info('{table}');   
+"""
+
         try:
             async with self.client.aquire() as conn:
-                res = await asyncio.to_thread(lambda: conn.sql(f"DESCRIBE {table}").fetchdf())
+                res = await asyncio.to_thread(lambda: conn.sql(query).fetchdf())
                 self.logger.debug(f"got columns for table: {table}")
-            return res.iloc[:, 0].to_list()
+            return res
         except Exception as e:
-            self.logger.warning(f"error while getting table columns: {e}")
-            return []
+            raise ValueError(f"error while getting table columns: {e}")
 
     async def _get_unique_values(self, table: str, column: str) -> List[str]:
         async with self.client.aquire() as conn:
@@ -91,13 +91,14 @@ AND column_name = '{column}';
             await self._reset_cache()
             if table not in self.tables_columns_cache:
                 raise ValueError(f"table {table} doesn't exist in DB")
-            
+
         return True
 
     async def _check_columns_exist(self, table: str, columns: list[str]):
         await self._check_table_exists(table)
 
-        cached_columns = set(self.tables_columns_cache[table])
+        rows = self.tables_columns_cache[table]
+        cached_columns = rows.iloc[:, 0].to_list()
         for column in columns:
             if column not in cached_columns:
                 raise ValueError(f"column: {column} doesnt exist in table: {table}")
@@ -107,15 +108,11 @@ AND column_name = '{column}';
         if not self.db_file_path.exists():
             raise ValueError("db file path doesnt exist, create it")
 
-        async with self.client.aquire() as conn:
-            self.logger.debug("getting tables...")
-            res = conn.sql("SHOW TABLES").fetchall()
-        table_names: list[str] = [row[0] for row in res]
-
         if not self.tables_columns_cache:
             await self._reset_cache()
+            return list(self.tables_columns_cache.keys())
 
-        return table_names
+        return list(self.tables_columns_cache.keys())
 
     async def insert_csv_data(self):
         if not self.file_path:
@@ -137,27 +134,29 @@ FROM read_csv('{str(self.file_path)}');
 
     async def get_table_columns(self, table: str) -> list[str]:
         await self._check_table_exists(table)
+        rows = self.tables_columns_cache[table]
 
         selected_cols = []
-        for col in await self._get_column_names(table):
-            if not await self._check_column_type(table, col) in NUMERIC_TYPES:
-                selected_cols.append(col)
+        for row in rows.itertuples(index=False):
+            col_type = self._asign_type(str(row.type))
+            col_name = str(row.name)
+            if not col_type in NUMERIC_TYPES:
+                selected_cols.append(col_name)
         return selected_cols
 
     async def get_table_columns_and_unique_values(self, table: str) -> dict[str, list[str]]:
         await self._check_table_exists(table)
-        
-        columns = self.tables_columns_cache[table]
+        rows = self.tables_columns_cache[table]
 
         res = {}
-        for col in columns:
-
-            col_type = await self._check_column_type(table, col)
+        for row in rows.itertuples(index=False):
+            col_type = self._asign_type(str(row.type))
+            col_name = str(row.name)
             if col_type in NUMERIC_TYPES:
                 continue
 
-            unique_values = await self._get_unique_values(table, col)            
-            res[col] = unique_values
+            unique_values = await self._get_unique_values(table, col_name)
+            res[col_name] = unique_values
         return res
 
     async def select(self, table: str, columns: List[str]) -> pd.DataFrame:
@@ -187,12 +186,7 @@ FROM read_csv('{str(self.file_path)}');
             await self._check_columns_exist(table, group_by_columns)
 
         if not group_by_columns:
-
-            if not self.tables_columns_cache[table]:
-                all_columns = await self._get_column_names(table)
-            else:
-                all_columns = self.tables_columns_cache[table]
-
+            all_columns = self.tables_columns_cache[table].iloc[:, 0].to_list()
             group_by_columns = list(set(all_columns) - set(columns) - {operation_column})
 
         query = f"""
@@ -213,6 +207,11 @@ GROUP BY {self._format_list(group_by_columns)};
             res = await asyncio.to_thread(lambda: conn.sql(f"SELECT * FROM {table}").fetchdf())
         return res
 
+
+# NOTES
+# cache should be never reset, only if the write DB connection is closed
+# since new tables cannot be found by the user since a list is given, in theory the cache should never be reset
+# but just in case it does reset if a table is not found (hence updating the cache with new tables)
 
 # logging for the repository
 setup_logging(level="DEBUG")
