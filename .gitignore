@@ -1,5 +1,6 @@
 api/db/db_cubi_ustat.ddb
 api/db/db_cubi_ustat.ddb.tmp
+api/db/db_cubi_ustat.ddb -readonly
 data/*
 
 frontend/node_modules

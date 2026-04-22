@@ -1,5 +1,5 @@
+from api.utils.logging import setup_logging
 from api.db.client import dbClient
-from pydantic import BaseModel
 from pathlib import Path
 from typing import List
 from enum import Enum
@@ -48,6 +48,22 @@ AND column_name = '{column}';
         except Exception:
             return SQLTypes.OTHER
 
+    async def _reset_cache(self):
+        self.tables_columns_cache = {}
+        self.logger.debug("resetting cache ...")
+
+        async with self.client.aquire() as conn:
+            self.logger.debug("getting tables...")
+            res = conn.sql("SHOW TABLES").fetchall()
+        table_names: list[str] = [row[0] for row in res]
+
+        tasks = []
+        for table in table_names:
+            tasks.append(self._get_column_names(table)) 
+        columns_list = await asyncio.gather(*tasks)
+        self.tables_columns_cache = dict(zip(table_names, columns_list))
+        self.logger.debug(f"cached {len(self.tables_columns_cache)} tables and column names")
+
     async def _get_column_names(self, table) -> list[str]:
         try:
             async with self.client.aquire() as conn:
@@ -67,17 +83,19 @@ AND column_name = '{column}';
 
     async def _check_table_exists(self, table: str):
         if not self.tables_columns_cache:
-            await self.tables()
+            await self._reset_cache()
+            if table not in self.tables_columns_cache:
+                raise ValueError(f"table {table} doesn't exist in DB")
 
         if table not in self.tables_columns_cache:
-            self.tables_columns_cache[table] = await self._get_column_names(table)
+            await self._reset_cache()
+            if table not in self.tables_columns_cache:
+                raise ValueError(f"table {table} doesn't exist in DB")
+            
         return True
 
     async def _check_columns_exist(self, table: str, columns: list[str]):
         await self._check_table_exists(table)
-
-        if not self.tables_columns_cache[table]:
-            self.tables_columns_cache[table] = await self._get_column_names(table)
 
         cached_columns = set(self.tables_columns_cache[table])
         for column in columns:
@@ -95,12 +113,7 @@ AND column_name = '{column}';
         table_names: list[str] = [row[0] for row in res]
 
         if not self.tables_columns_cache:
-            tasks = []
-            for table in table_names:
-                tasks.append(self._get_column_names(table)) 
-            columns_list = await asyncio.gather(*tasks)
-            self.tables_columns_cache = dict(zip(table_names, columns_list))
-            self.logger.debug(f"cached {len(self.tables_columns_cache)} tables and column names")
+            await self._reset_cache()
 
         return table_names
 
@@ -124,6 +137,7 @@ FROM read_csv('{str(self.file_path)}');
 
     async def get_table_columns(self, table: str) -> list[str]:
         await self._check_table_exists(table)
+
         selected_cols = []
         for col in await self._get_column_names(table):
             if not await self._check_column_type(table, col) in NUMERIC_TYPES:
@@ -132,11 +146,8 @@ FROM read_csv('{str(self.file_path)}');
 
     async def get_table_columns_and_unique_values(self, table: str) -> dict[str, list[str]]:
         await self._check_table_exists(table)
-
-        if not self.tables_columns_cache[table]:
-            columns = await self._get_column_names(table)
-        else:
-            columns = self.tables_columns_cache[table]
+        
+        columns = self.tables_columns_cache[table]
 
         res = {}
         for col in columns:
@@ -196,12 +207,15 @@ GROUP BY {self._format_list(group_by_columns)};
         return res
 
     async def get_table(self, table: str) -> pd.DataFrame:
-        await self._check_table_exists(table)
+        res = await self._check_table_exists(table)
 
         async with self.client.aquire() as conn:
             res = await asyncio.to_thread(lambda: conn.sql(f"SELECT * FROM {table}").fetchdf())
         return res
 
+
+# logging for the repository
+setup_logging(level="DEBUG")
 
 # global repository instance for all services
 files_path = Path("./data/cubi_UDSC_01.csv")
