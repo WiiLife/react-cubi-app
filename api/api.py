@@ -1,7 +1,7 @@
-from api.db.repository import repository
+from api.db.repository import repository, SQLOperation
 from fastapi import APIRouter, Body, Response
 from pydantic import BaseModel
-from typing import List
+from typing import List, Literal
 
 
 class SelectBody(BaseModel):
@@ -9,8 +9,9 @@ class SelectBody(BaseModel):
 
 
 class PivotBody(BaseModel):
-    columns: List[str]
-    group_columns: List[str]
+    columns: dict[str, list[str]]
+    operation: Literal["SUM", "COUNT", "AVG"] = "SUM"
+    column_variables: list[str] | None = None
 
 router = APIRouter(prefix="/api")
 
@@ -25,6 +26,7 @@ async def table(table_name: str):
     df = await repository.get_table(table_name)
     return Response(content=df.to_json(orient="records"), media_type="application/json")
 
+# probably unnecessary
 @router.post("/tables/{table_name}")
 async def select(table_name: str, payload: SelectBody = Body(...)):
     df = await repository.select(table_name, payload.columns)
@@ -34,9 +36,10 @@ async def select(table_name: str, payload: SelectBody = Body(...)):
 async def pivot(table_name: str, payload: PivotBody = Body(...)):
     df = await repository.pivot(
         table=table_name, 
-        columns=payload.columns, 
-        operation_column="valore", 
-        group_by_columns=payload.group_columns
+        columns=payload.columns,
+        column_variables=payload.column_variables,
+        operation_column="valore",
+        operation=SQLOperation(payload.operation)
     )
     return Response(content=df.to_json(orient="records"), media_type="application/json")
 

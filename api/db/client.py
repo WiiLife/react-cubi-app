@@ -4,8 +4,8 @@ import logging
 from pathlib import Path
 from asyncio import Queue
 from duckdb import DuckDBPyConnection
+from typing import Callable, Awaitable
 from contextlib import asynccontextmanager
-from api.db.repository import repository
 
 
 class dbClient:
@@ -19,6 +19,11 @@ class dbClient:
         self.__kwargs = kwargs
 
         self.__logger = logging.getLogger((__name__).upper())
+        self.__clear_cache_callback: Callable[[], Awaitable[None]] = lambda: asyncio.sleep(0)
+
+    def register_clear_cache_callback(self, callback):
+        self.__clear_cache_callback = callback
+        self.__logger.debug("registered async callback")
 
     async def initialize(self):
         if self.__initialized:
@@ -54,6 +59,7 @@ class dbClient:
 
         if not self.__initialized:
             async with self.__db_file_lock:
+                # raise ValueError("initilize readonly connections")
                 await self.initialize()
 
         conn = await self.__pool.get()
@@ -83,8 +89,9 @@ class dbClient:
             finally:
                 conn.close()
                 self.__logger.debug("closed main write connection")
-                await repository._reset_cache()
-                self.__logger.debug("reset repository cache")
+        
+        self.__logger.debug("called clear cache callback...")
+        await self.__clear_cache_callback()
 
 
 if __name__ == "__main__":
