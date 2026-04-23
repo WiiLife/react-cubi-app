@@ -1,5 +1,5 @@
 from api.db.repository import repository, SQLOperation
-from fastapi import APIRouter, Body, Response
+from fastapi import APIRouter, Body, Response, HTTPException, status
 from pydantic import BaseModel
 from typing import List, Literal
 
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/api")
 @router.get("/tables")
 async def home():
     tables = await repository.tables()
-    return {"tables": tables}
+    return tables
 
 # probably unnecessary
 @router.get("/tables/{table_name}")

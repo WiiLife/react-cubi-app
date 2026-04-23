@@ -1,6 +1,12 @@
+import type { Dispatch, SetStateAction } from "react"
+
 export interface Props {
-    tableNames: {"tables": string[]}
+    tableNames: string[] | null
+    tableChoice: string | null
     setTableChoice: (table: string) => void
     columns: string[] | null
-    setColumnsChoice: (cols: string[]) => void
+    columnValues: Record<string, string[]> | null
+    columnValuesChoice: Record<string, string[]> | null
+    setColumnValuesChoice: Dispatch<SetStateAction<Record<string, string[]> | null>>
 }
+

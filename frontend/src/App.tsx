@@ -2,17 +2,21 @@ import FilterDisplay from "./components/filterDisplay"
 import { useEffect, useState } from "react"
 import type { Props } from "./interfaces/props"
 import { getTables } from "./api/api"
-import { getColumns } from "./api/api"
+import { getColumnValues } from "./api/api"
+import TableCard from "./components/tableCard"
 
 
 function App() {
-  const [tableChoice, setTableChoice] = useState<string>();
-  const [columns, setColumnsChoice] = useState<string[] | null>(null);
+  const [tableChoice, setTableChoice] = useState<string | null>(null);
+  const [columnValuesChoice, setColumnValuesChoice] = useState<Record<string, string[]> | null>(null);
   const [props, setProps] = useState<Props>({
-    tableNames: {"tables": []},
+    tableNames: null,
+    tableChoice,
     setTableChoice,
-    columns,
-    setColumnsChoice,
+    columns: null,
+    columnValues: null,
+    columnValuesChoice,
+    setColumnValuesChoice,
   });
 
   useEffect(() => {
@@ -28,19 +32,23 @@ function App() {
   }, [])
 
   useEffect(() => {
-    async function fetchColumns(table: string) {
-      const columns = await getColumns(table);
+    async function fetchColumnValues(table: string) {
+      const columnValues = await getColumnValues(table);
       setProps((prev) => ({
         ...prev,
-        columns
+        columns: Object.keys(columnValues),
+        columnValues
       }))
     }
 
     if (tableChoice) {
-      fetchColumns(tableChoice) 
+      fetchColumnValues(tableChoice) 
     }
-    
   }, [tableChoice])
+
+  useEffect(() => {
+
+  }, [props.columnValuesChoice, tableChoice])
 
   return (
     <>
@@ -66,7 +74,19 @@ function App() {
           TABLE CHOICE: {tableChoice}
         </div>
         <div>
-          COLUMN CHOICES: {columns}
+          COLUMN CHOICES: {columnValuesChoice ? Object.keys(columnValuesChoice).join(', ') : null}
+        </div>
+        <div>
+          VALUES CHOICES:
+          {columnValuesChoice && Object.entries(columnValuesChoice).map(([col, values]) => (
+            <div key={col} className="ml-4">
+              {col}: {values.join(', ')}
+            </div>
+          ))}
+        </div>
+
+        <div className="m-5">
+          {tableChoice && columnValuesChoice && <TableCard table={tableChoice} columnValues={columnValuesChoice}/>}
         </div>
 
       </div>

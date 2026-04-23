@@ -1,7 +1,7 @@
 import { useState } from "react"
 
 
-export default function TableChoice({tableNames, setTableChoice}: {tableNames: {"tables": string[]}, setTableChoice: (table: string) => void}) {
+export default function TableChoice({tableNames, setTableChoice}: {tableNames: string[], setTableChoice: (table: string) => void}) {
     const [openDropdown, setOpenDropdown] = useState<boolean>(false);
     const [table, setTable] = useState<string>("choose a table");
     
@@ -18,7 +18,7 @@ export default function TableChoice({tableNames, setTableChoice}: {tableNames: {
 
                 <div className="relative">
                     {openDropdown && <div className="absolute bg-(--bg) border rounded mt-3">
-                        {tableNames.tables.map((table) => (
+                        {tableNames.map((table) => (
                         <div key={table}>
                             <button className="w-full text-left px-1 py-1 hover:bg-gray-200 dark:hover:bg-gray-800" 
                                 onClick={() => {setTableChoice(table); setTable(table); setOpenDropdown(false);}}

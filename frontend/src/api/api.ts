@@ -21,10 +21,19 @@ export async function api<T> (
 }
 
 
-export function getTables(): Promise<{"tables": string[]}> {
+export function getTables(): Promise<string[]> {
     return api(`${BACKEND}/api/tables`);
 }
 
-export function getColumns(table: string): Promise<string[]> {
-    return api(`${BACKEND}/api/tables/${table}/columns`)
+export function getColumnValues(table: string): Promise<Record<string, string[]>>  {
+    return api(`${BACKEND}/api/tables/${table}/columns-values`)
 }
+
+export function getTable({table, columns, columnVariables} : 
+    {table: string, columns: Record<string, string[]>, columnVariables: string[]}
+): Promise<Record<string, unknown>[]> {
+    return api(`${BACKEND}/api/tables/${table}/pivot`, {
+        method: "POST",
+        body: JSON.stringify({columns, column_variables: columnVariables})
+    })
+} 
