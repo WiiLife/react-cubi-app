@@ -87,7 +87,9 @@ FROM pragma_table_info('{table}');
     async def _get_unique_values(self, table: str, column: str) -> List[str]:
         async with self.client.aquire() as conn:
             res = await asyncio.to_thread(
-                lambda: conn.sql(f"SELECT DISTINCT {column} FROM {table};").fetchall()
+                lambda: conn.sql(
+                    f"SELECT DISTINCT {column} FROM {table} ORDER BY {column};"
+                ).fetchall()
             )
         return [col[0] for col in res]
 
@@ -225,7 +227,7 @@ FROM {table}
         on_query = ""
         if column_variables:
             on_query += f"ON {self._format_list(column_variables, quotes='"')}"
-            
+
         query = f"""
 PIVOT ({table_query})
 {on_query}
