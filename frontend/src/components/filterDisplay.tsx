@@ -7,8 +7,8 @@ export default function FilterDisplay({props}: {props: Props}) {
     return (
         <>
             <div className="flex justify-between">
-                <TableChoice tableNames={props.tableNames} setTableChoice={props.setTableChoice}/>
-                {props.columns && props.columnValues && <ColumnsChoice columns={props.columns} columnValues={props.columnValues} setColumnValuesChoice={props.setColumnValuesChoice}/>}
+                <TableChoice props={props}/>
+                <ColumnsChoice props={props}/>
             </div>
         </>
     )

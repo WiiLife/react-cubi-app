@@ -1,32 +1,49 @@
-import type { Dispatch, SetStateAction} from "react"
-import { useState, useEffect } from "react";
+import { useState, useEffect} from "react";
+import type { Props } from "../interfaces/props";
+import type { Dispatch, SetStateAction } from "react";
 
-export default function ColumnUniqueValuesChoice({col, colSelected, values, setColumnValuesChoice}: {col: string, colSelected: boolean, values: string[], setColumnValuesChoice: Dispatch<SetStateAction<Record<string, string[]> | null>>}) {
+
+export default function ColumnUniqueValuesChoice({props, col, colSelected, setColSelected, colValues}: 
+    {props: Props, col: string, colSelected: boolean, setColSelected: Dispatch<SetStateAction<Record<string, boolean>>>, colValues: Record<string, string[]>}) {
     const [openDropdown, setOpenDropdown] = useState<boolean>(false);
-    const [selectedValues, setSelectedValues] = useState<Record<string, boolean>>(Object.fromEntries(values.map(key => [key, false])))
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-
-    useEffect(() => {
-        setSelectedValues(values.reduce((acc, val) => ({ ...acc, [val]: false }), {}))
-    }, [values]);
+    const values = colValues[col] ?? [];
+    const [selectedValues, setSelectedValues] = useState<Record<string, boolean>>(Object.fromEntries(values.map((key, i) => [key, i === 0])))
 
     useEffect(() => {
-        setSelectedValues(Object.fromEntries(values.map(key => [key, false])))
-    }, [colSelected])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        setSelectedValues(Object.fromEntries(values.map((key, i) => [key, i === 0])))
+    }, [values])
 
     useEffect(() => {
-        if (colSelected) {
-            const selectedVals = Object.entries(selectedValues)
-            .filter(([, selected]) => selected)
-            .map(([value]) => value)
-
-            setColumnValuesChoice((prev) => ({
+        if (Object.values(selectedValues).some((value) => value)) {
+            setColSelected((prev) => ({
                 ...prev,
-                [col]: selectedVals
+                [col]: true
+            }))
+        } else {
+            setColSelected((prev) => ({
+                ...prev,
+                [col]: false
             }))
         }
     }, [selectedValues])
+
+    useEffect(() => {
+        if (!colSelected) {
+            setSelectedValues(Object.fromEntries(values.map(key => [key, false])))
+        } 
+    }, [colSelected])
+
+    useEffect(() => {
+        const selectedValuesList = Object.entries(selectedValues)
+        .filter(([, selected]) => selected)
+        .map(([value]) => value)
+        props.setColumnValuesChoice((prev) => ({
+            ...prev,
+            [col]: selectedValuesList
+        }))
+    }, [selectedValues])
+
 
     return (
         <>
@@ -36,10 +53,10 @@ export default function ColumnUniqueValuesChoice({col, colSelected, values, setC
                     className="border p-1 rounded-md flex justify-between gap-5"
                 >
                     {col}
-                    {openDropdown && colSelected ? <span className="rotate-90">{"<"}</span> : <span className="rotate-90">{">"}</span>}
+                    {openDropdown ? <span className="rotate-90">{"<"}</span> : <span className="rotate-90">{">"}</span>}
                 </button>
 
-                {openDropdown && colSelected && <div className="relative">
+                {openDropdown && <div className="relative">
                     <div className="absolute bg-(--bg) p-1 border rounded mt-3 z-10">
                         {values.map((val) => (
                             <button

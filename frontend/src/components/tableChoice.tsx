@@ -1,9 +1,25 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import type { Props } from "../interfaces/props";
+import { getTables } from "../api/api";
 
 
-export default function TableChoice({tableNames, setTableChoice}: {tableNames: string[], setTableChoice: (table: string) => void}) {
+export default function TableChoice({props}: {props: Props}) {
     const [openDropdown, setOpenDropdown] = useState<boolean>(false);
-    const [table, setTable] = useState<string>("choose a table");
+    const [tables, setTables] = useState<string[] | null>(null);
+    const [tableChoice, setTableChoice] = useState<string | null>(null);
+
+    useEffect(() => {
+        async function fetchTables() {
+            setTables(await getTables())   
+        }
+        fetchTables();
+    }, [])
+
+    useEffect(() => {
+        if (tableChoice) {
+            props.setTableChoice(tableChoice);
+        }
+    }, [tableChoice])
     
     return (
         <>
@@ -12,16 +28,16 @@ export default function TableChoice({tableNames, setTableChoice}: {tableNames: s
                     onClick={() => openDropdown ? setOpenDropdown(false) : setOpenDropdown(true)}
                     className="border p-1 rounded-md flex justify-between w-9/12"
                 >
-                    {table}
+                    {tableChoice || "choose a table"}
                     {openDropdown ? <span className="rotate-90">{"<"}</span> : <span className="rotate-90">{">"}</span>}
                 </button>
 
                 <div className="relative">
                     {openDropdown && <div className="absolute bg-(--bg) border rounded mt-3">
-                        {tableNames.map((table) => (
+                        {tables?.map((table) => (
                         <div key={table}>
                             <button className="w-full text-left px-1 py-1 hover:bg-gray-200 dark:hover:bg-gray-800" 
-                                onClick={() => {setTableChoice(table); setTable(table); setOpenDropdown(false);}}
+                                onClick={() => {setTableChoice(table); setOpenDropdown(false);}}
                             >
                                 {table}
                             </button>

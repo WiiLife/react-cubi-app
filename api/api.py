@@ -38,7 +38,7 @@ async def pivot(table_name: str, payload: PivotBody = Body(...)):
         table=table_name, 
         columns=payload.columns,
         column_variables=payload.column_variables,
-        operation_column="valore",
+        # operation_column="valore",
         operation=SQLOperation(payload.operation)
     )
     return Response(content=df.to_json(orient="records"), media_type="application/json")

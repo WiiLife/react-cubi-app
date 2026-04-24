@@ -194,25 +194,38 @@ FROM read_csv('{str(files_path)}');
         operation_column: str = "valore",
         operation: SQLOperation = SQLOperation.SUM,
     ) -> pd.DataFrame:
-
         selected_columns = list(columns.keys())
-        selected_columns.append(operation_column)
-
         await self._check_columns_exist(table, selected_columns)
+
         operation_column_type = await self._check_column_type(table, operation_column)
-
         if not operation_column_type in (SQLTypes.INTEGER, SQLTypes.DOUBLE):
-            raise ValueError(f"operation column ({operation_column}) needs to be integer or doubble. Currently: {operation_column_type}")
-
-        row_variables = selected_columns
-        if column_variables:
-            await self._check_columns_exist(table, column_variables)
-            row_variables = list(
-                set(selected_columns) - set(column_variables) - {operation_column}
+            raise ValueError(
+                f"operation column ({operation_column}) needs to be integer or doubble. Currently: {operation_column_type}"
             )
 
+        all_columns = []
+        for row in self.tables_columns_cache[table].itertuples(index=False):
+            col_type = self._asign_type(str(row.type))
+            if col_type not in (SQLTypes.INTEGER, SQLTypes.DOUBLE, SQLTypes.VARCHAR):
+                all_columns.append(str(row.name))
+                
+        self.logger.debug(f"--------------------- all cols: {all_columns}")
+
+        # await self._check_columns_exist(table, selected_columns)
+
+        # row_variables = selected_columns
+        # if column_variables:
+        #     await self._check_columns_exist(table, column_variables)
+        #     row_variables = list(
+        #         set(selected_columns) - set(column_variables) - {operation_column}
+        #     )
+
+        pivot_columns = []
+        if selected_columns != all_columns:
+            pivot_columns = list(set(all_columns) - set(selected_columns) - {operation_column})
+
         table_query = f'''
-SELECT {self._format_list(selected_columns, quotes='"')}
+SELECT *
 FROM {table}        
 '''
 
@@ -225,14 +238,14 @@ FROM {table}
         table_query += " WHERE" + " AND ".join(filter_query)
 
         on_query = ""
-        if column_variables:
-            on_query += f"ON {self._format_list(column_variables, quotes='"')}"
+        if pivot_columns:
+            on_query += f"ON ({self._format_list(pivot_columns, quotes='"')})"
 
         query = f"""
 PIVOT ({table_query})
 {on_query}
 USING {operation.value}({operation_column}) 
-GROUP BY {self._format_list(row_variables, quotes='"')};
+GROUP BY {self._format_list(selected_columns, quotes='"')};
 """
 
         query = re.sub(r"\s+", " ", query).strip()

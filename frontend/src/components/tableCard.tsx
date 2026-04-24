@@ -7,8 +7,6 @@ export default function TableCard({table, columnValues}: {table: string, columnV
     const [columns, setColumns] = useState<string[] | null>(null);
 
     useEffect(() => {
-        
-
         async function fetchTable() {
             const filteredColumns = Object.fromEntries(
                 Object.entries(columnValues).filter(([, vals]) => vals.length > 0)
@@ -19,7 +17,7 @@ export default function TableCard({table, columnValues}: {table: string, columnV
                 const res = await getTable({
                     table,
                     columns: filteredColumns,
-                    columnVariables: []
+                    pivot_cols: []
                 })
                 setTableData(res)
                 setColumns(Object.keys(res[0]))

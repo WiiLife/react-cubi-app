@@ -29,11 +29,11 @@ export function getColumnValues(table: string): Promise<Record<string, string[]>
     return api(`${BACKEND}/api/tables/${table}/columns-values`)
 }
 
-export function getTable({table, columns, columnVariables} : 
-    {table: string, columns: Record<string, string[]>, columnVariables: string[]}
+export function getTable({table, columns, pivot_cols} : 
+    {table: string, columns: Record<string, string[]>, pivot_cols: string[]}
 ): Promise<Record<string, unknown>[]> {
     return api(`${BACKEND}/api/tables/${table}/pivot`, {
         method: "POST",
-        body: JSON.stringify({columns, column_variables: columnVariables})
+        body: JSON.stringify({columns, column_variables: pivot_cols})
     })
 } 

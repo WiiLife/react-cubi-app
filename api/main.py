@@ -13,14 +13,15 @@ async def lifespan(app: FastAPI):
     await repository.client.close() # at shutdown
 
 
-app = FastAPI()
-app.include_router(api_router)
-
+app = FastAPI(lifespan=lifespan)
 app.add_middleware(
-    CORSMiddleware, 
+    CORSMiddleware,
     allow_origins=["http://localhost:5173"],
     allow_methods=["*"],
+    allow_headers=["*"],
+    allow_credentials=True,
 )
+app.include_router(api_router)
 
 
 if __name__ == "__main__":

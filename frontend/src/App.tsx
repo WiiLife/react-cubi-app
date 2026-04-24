@@ -1,8 +1,6 @@
 import FilterDisplay from "./components/filterDisplay"
 import { useEffect, useState } from "react"
 import type { Props } from "./interfaces/props"
-import { getTables } from "./api/api"
-import { getColumnValues } from "./api/api"
 import TableCard from "./components/tableCard"
 
 
@@ -10,45 +8,20 @@ function App() {
   const [tableChoice, setTableChoice] = useState<string | null>(null);
   const [columnValuesChoice, setColumnValuesChoice] = useState<Record<string, string[]> | null>(null);
   const [props, setProps] = useState<Props>({
-    tableNames: null,
-    tableChoice,
     setTableChoice,
-    columns: null,
-    columnValues: null,
-    columnValuesChoice,
     setColumnValuesChoice,
+    tableChoice,
+    columnValuesChoice,
+    pivotColumns: null,
   });
 
   useEffect(() => {
-    async function fetchTables() {
-      const tableNames = await getTables();
-      setProps((prev) => ({
-        ...prev,
-        tableNames
-      }));
-    }
-
-    fetchTables();
-  }, [])
-
-  useEffect(() => {
-    async function fetchColumnValues(table: string) {
-      const columnValues = await getColumnValues(table);
-      setProps((prev) => ({
-        ...prev,
-        columns: Object.keys(columnValues),
-        columnValues
-      }))
-    }
-
-    if (tableChoice) {
-      fetchColumnValues(tableChoice) 
-    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setProps((prev) => ({
+      ...prev,
+      tableChoice
+    }))
   }, [tableChoice])
-
-  useEffect(() => {
-
-  }, [props.columnValuesChoice, tableChoice])
 
   return (
     <>
