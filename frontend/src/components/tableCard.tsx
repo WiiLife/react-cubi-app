@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { getTable } from "../api/api"
 
 
-export default function TableCard({table, columnValues}: {table: string, columnValues: Record<string, string[]>}) {
+export default function TableCard({table, columnValues, pivotColumns}: {table: string, columnValues: Record<string, string[]>, pivotColumns: string[]}) {
     const [tableData, setTableData] = useState<Record<string, unknown>[] | null>(null);
     const [columns, setColumns] = useState<string[] | null>(null);
 
@@ -17,7 +17,7 @@ export default function TableCard({table, columnValues}: {table: string, columnV
                 const res = await getTable({
                     table,
                     columns: filteredColumns,
-                    pivot_cols: []
+                    pivot_cols: pivotColumns
                 })
                 setTableData(res)
                 setColumns(Object.keys(res[0]))
@@ -25,7 +25,7 @@ export default function TableCard({table, columnValues}: {table: string, columnV
         };
 
         fetchTable();
-    }, [table, columnValues])
+    }, [table, columnValues, pivotColumns])
 
     return (
         <>

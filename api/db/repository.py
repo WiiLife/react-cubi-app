@@ -208,10 +208,8 @@ FROM read_csv('{str(files_path)}');
             col_type = self._asign_type(str(row.type))
             if col_type not in (SQLTypes.INTEGER, SQLTypes.DOUBLE, SQLTypes.VARCHAR):
                 all_columns.append(str(row.name))
-                
-        self.logger.debug(f"--------------------- all cols: {all_columns}")
 
-        # await self._check_columns_exist(table, selected_columns)
+        self.logger.debug(f"--------------------- all cols: {all_columns}")
 
         # row_variables = selected_columns
         # if column_variables:
@@ -223,6 +221,11 @@ FROM read_csv('{str(files_path)}');
         pivot_columns = []
         if selected_columns != all_columns:
             pivot_columns = list(set(all_columns) - set(selected_columns) - {operation_column})
+
+        if column_variables:
+            await self._check_columns_exist(table, column_variables)
+            pivot_columns.extend(column_variables)
+            selected_columns = list(set(selected_columns) - set(pivot_columns))
 
         table_query = f'''
 SELECT *

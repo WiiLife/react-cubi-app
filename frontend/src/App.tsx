@@ -6,22 +6,26 @@ import TableCard from "./components/tableCard"
 
 function App() {
   const [tableChoice, setTableChoice] = useState<string | null>(null);
+  const [pivotColumns, setPivotColumns] = useState<string[]>([]);
   const [columnValuesChoice, setColumnValuesChoice] = useState<Record<string, string[]> | null>(null);
   const [props, setProps] = useState<Props>({
     setTableChoice,
     setColumnValuesChoice,
+    setPivotColumns,
     tableChoice,
     columnValuesChoice,
-    pivotColumns: null,
+    pivotColumns,
   });
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     setProps((prev) => ({
       ...prev,
-      tableChoice
+      tableChoice,
+      pivotColumns,
+      columnValuesChoice
     }))
-  }, [tableChoice])
+  }, [tableChoice, pivotColumns, columnValuesChoice])
 
   return (
     <>
@@ -50,7 +54,10 @@ function App() {
           COLUMN CHOICES: {columnValuesChoice ? Object.keys(columnValuesChoice).join(', ') : null}
         </div>
         <div>
-          VALUES CHOICES:
+          PIVOT COLUMNS: {pivotColumns ? pivotColumns.join(', '): null}
+        </div>
+        <div>
+          VALUES CHOICES
           {columnValuesChoice && Object.entries(columnValuesChoice).map(([col, values]) => (
             <div key={col} className="ml-4">
               {col}: {values.join(', ')}
@@ -59,7 +66,7 @@ function App() {
         </div>
 
         <div className="m-5">
-          {tableChoice && columnValuesChoice && <TableCard table={tableChoice} columnValues={columnValuesChoice}/>}
+          {tableChoice && columnValuesChoice && <TableCard table={tableChoice} columnValues={columnValuesChoice} pivotColumns={pivotColumns}/>}
         </div>
 
       </div>

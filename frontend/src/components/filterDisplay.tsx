@@ -1,6 +1,6 @@
 import TableChoice from "./tableChoice"
-import ColumnsChoice from "./columnsChoice"
 import type { Props } from "../interfaces/props"
+import ColumnFilter from "./columnFilter"
 
 
 export default function FilterDisplay({props}: {props: Props}) {
@@ -8,7 +8,7 @@ export default function FilterDisplay({props}: {props: Props}) {
         <>
             <div className="flex justify-between">
                 <TableChoice props={props}/>
-                <ColumnsChoice props={props}/>
+                {props.tableChoice && <ColumnFilter props={props} tableName={props.tableChoice}/>}
             </div>
         </>
     )
