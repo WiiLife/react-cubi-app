@@ -1,7 +1,8 @@
-import { useEffect, useState, useRef, useCallback} from "react"
+import { useEffect, useState, useRef} from "react"
 import { getColumnValues } from "../api/api";
 import ColumnObject from "./columnObject";
 import type { Props } from "../interfaces/props"
+import GrapComponent from "./grabComponent";
 
 
 export default function ColumnFilter({ props, tableName }: {props: Props, tableName: string}) {
@@ -9,17 +10,9 @@ export default function ColumnFilter({ props, tableName }: {props: Props, tableN
     const [pivotColumns, setPivotColumns] = useState<string[]>([]);
     const [columnValuesChoice, setColumnValuesChoice] = useState<Record<string, Record<string, boolean>> | null>(null);
     
-    const pivotSectionRef = useRef<HTMLDivElement>(null);
-    const columnSectionRef = useRef<HTMLDivElement>(null);
-    const colObjectRef = useRef<HTMLDivElement>(null);
-    const pivObjectRef = useRef<HTMLDivElement>(null);
-    const [positionCol, setPositionCol] = useState({ x: 0, y: 0 });
-    const [positionPiv, setPositionPiv] = useState({ x: 0, y: 0 });
-    const [draggingCol, setDraggingCol] = useState(false);
-    const [draggingPiv, setDraggingPiv] = useState(false);
-    const dragStateCol = useRef({ startX: 0, startY: 0 });
-    const dragStatePiv = useRef({ startX: 0, startY: 0 });
-
+    const pivotSectionRef = useRef<HTMLDivElement | null>(null);
+    const columnSectionRef = useRef<HTMLDivElement | null>(null);
+    const fullSectionRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
         async function fetchColumnValues(tableName: string) {
@@ -98,127 +91,36 @@ export default function ColumnFilter({ props, tableName }: {props: Props, tableN
                 setRowColumns((prev) => [...prev, col]);
             }
         }
-    }
-
-    const onMouseDownCol = useCallback((e: React.MouseEvent) => {
-        if (!columnSectionRef.current) return;
-        
-        setDraggingCol(true);
-        const columnSectionRect = columnSectionRef.current.getBoundingClientRect();
-        dragStateCol.current = {
-            startX: e.clientX - positionCol.x - columnSectionRect.left,
-            startY: e.clientY - positionCol.y - columnSectionRect.top,
-        }
-    }, [positionCol]);
-
-    const onMouseMoveCol = useCallback((e: React.MouseEvent) => {
-        if (!draggingCol || !columnSectionRef.current) return;
-        
-        const columnSectionRect = columnSectionRef.current.getBoundingClientRect();
-        setPositionCol({
-            x: e.clientX - dragStateCol.current.startX - columnSectionRect.left,
-            y: e.clientY - dragStateCol.current.startY - columnSectionRect.top
-        });
-    }, [draggingCol]);
-
-    const onMouseUpCol = () => {
-        setDraggingCol(false);
-    }
-
-    const onMouseDownPiv = useCallback((e: React.MouseEvent) => {
-        if (!pivotSectionRef.current) return;
-        
-        setDraggingPiv(true);
-        const pivotSectionRect = pivotSectionRef.current.getBoundingClientRect();
-        dragStatePiv.current = {
-            startX: e.clientX - positionPiv.x - pivotSectionRect.left,
-            startY: e.clientY - positionPiv.y - pivotSectionRect.top,
-        }
-    }, [positionPiv]);
-
-    const onMouseMovePiv = useCallback((e: React.MouseEvent) => {
-        if (!draggingPiv || !pivotSectionRef.current) return;
-        
-        const pivotSectionRect = pivotSectionRef.current.getBoundingClientRect();
-        setPositionPiv({
-            x: e.clientX - dragStatePiv.current.startX - pivotSectionRect.left,
-            y: e.clientY - dragStatePiv.current.startY - pivotSectionRect.top
-        });
-    }, [draggingPiv]);
-
-    const onMouseUpPiv = () => {
-        setDraggingPiv(false);
-    }
-
-    function snapToSection(objectRef: React.RefObject<HTMLDivElement>) {
-
-        // snap to section has to happen onMouseUp
-        // currently the objects are on top of one other, need to modify onMouseDown to prevent that
-        // current snapToSection snaps object one on top of another, give it some clearance by the number of elements in the list
-
-        if (!objectRef.current || !columnSectionRef.current || !pivotSectionRef.current) {
-            return undefined;
-        }
-
-        const colObjRect = objectRef.current.getBoundingClientRect();
-        const colSecRect = columnSectionRef.current.getBoundingClientRect();
-        const pivSecRect = pivotSectionRef.current.getBoundingClientRect();
-
-        const distToColSection = (colSecRect.x - colObjRect.x) ** 2 + (colSecRect.y - colObjRect.y) ** 2;
-        const distToPivSection = (pivSecRect.x - colObjRect.x) ** 2 + (pivSecRect.y - colObjRect.y) ** 2;
-
-        const closestRect = distToColSection < distToPivSection ? colSecRect : pivSecRect;
-        
-        return {
-            x: closestRect.x,
-            y: closestRect.y
-        };
-    }
+    }    
 
     return (
         <>
-            <div className="flex">
-                <div className="border rounded-md p-1 m-1 relative"
+            <div 
+                className="flex min-h-80 relative"
+                ref={fullSectionRef}
+            >
+                <div 
+                    className="border rounded-md p-1 m-1"
                     ref={columnSectionRef}
                 >
                     row Column Section:
-                    {rowColumns.map((col) => (
-                        <div key={`row-${col}`}
-                            ref={colObjectRef}
-                            id={`row-${col}`}
-                            onMouseDown={onMouseDownCol}
-                            onMouseMove={onMouseMoveCol}
-                            onMouseUp={onMouseUpCol}
-                            style={{
-                                position: "absolute",
-                                left: `${positionCol.x}px`,
-                                top: `${positionCol.y}px`,
-                                cursor: draggingCol ? "grabbing" : "grab",
-                            }}
-                        >
-                            {columnValuesChoice && <ColumnObject col={col} values={columnValuesChoice[col]} defaultSelected={true} setColValues={setColumnValues} togglePivotColumn={togglePivotColumn}/>}
+                    {columnValuesChoice && rowColumns.map((col) => (
+                        <div key={`row-${col}`}>
+                            <GrapComponent containerRef={fullSectionRef} colContainerRef={columnSectionRef} pivContainerRef={pivotSectionRef}>
+                                <ColumnObject col={col} values={columnValuesChoice[col]} defaultSelected={true} setColValues={setColumnValues} togglePivotColumn={togglePivotColumn}/>
+                            </GrapComponent>
                         </div>
                     ))}
                 </div>
-                <div className="border rounded-md p-1 m-1 relative"
+                <div className="border rounded-md p-1 m-1"
                     ref={pivotSectionRef}
                 >
                     pivot Column Section:
-                    {pivotColumns.map((col) => (
-                        <div key={`pivot-${col}`}
-                            ref={pivObjectRef}
-                            id={`row-${col}`}
-                            onMouseDown={onMouseDownPiv}
-                            onMouseMove={onMouseMovePiv}
-                            onMouseUp={onMouseUpPiv}
-                            style={{
-                                position: "absolute",
-                                left: `${positionPiv.x}px`,
-                                top: `${positionPiv.y}px`,
-                                cursor: draggingPiv ? "grabbing" : "grab",
-                            }}
-                        >
-                            {columnValuesChoice && <ColumnObject col={col} values={columnValuesChoice[col]} defaultSelected={false} setColValues={setColumnValues} togglePivotColumn={togglePivotColumn}/>}
+                    {columnValuesChoice && pivotColumns.map((col) => (
+                        <div key={`pivot-${col}`}>
+                            <GrapComponent containerRef={fullSectionRef} colContainerRef={columnSectionRef} pivContainerRef={pivotSectionRef}>
+                                <ColumnObject col={col} values={columnValuesChoice[col]} defaultSelected={false} setColValues={setColumnValues} togglePivotColumn={togglePivotColumn}/>
+                            </GrapComponent>
                         </div>
                     ))}
                 </div>
