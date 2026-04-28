@@ -27,15 +27,6 @@ export default function ColumnObject({col, values, defaultSelected, setColValues
 
     return (
         <>
-            <div>
-                COL: {col}
-            </div>
-            <div>   
-                SELECTED: {colSelected ? "true": "false"}
-            </div>
-            <div>
-                TRUE VALUES: {Object.entries(values).filter(([, isSelected]) => isSelected).map(([val]) => val).join(", ")}
-            </div>
             <div className={`${colSelected ? "bg-red-600": ""} flex w-fit p-1 rounded-md gap-1`}>
                 <button
                     onClick={() => openDropdown ? setOpenDropdown(false) : setOpenDropdown(true)}

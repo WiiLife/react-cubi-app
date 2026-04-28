@@ -48,22 +48,25 @@ function App() {
           </div>
 
         <div>
-          TABLE CHOICE: {tableChoice}
+          <div>
+            TABLE CHOICE: {tableChoice}
+          </div>
+          <div>
+            COLUMN CHOICES: {columnValuesChoice ? Object.keys(columnValuesChoice).join(', ') : null}
+          </div>
+          <div>
+            PIVOT COLUMNS: {pivotColumns ? pivotColumns.join(', '): null}
+          </div>
+          <div>
+            VALUES CHOICES
+            {columnValuesChoice && Object.entries(columnValuesChoice).map(([col, values]) => (
+              <div key={col} className="ml-4">
+                {col}: {values.join(', ')}
+              </div>
+            ))}
+          </div>
         </div>
-        <div>
-          COLUMN CHOICES: {columnValuesChoice ? Object.keys(columnValuesChoice).join(', ') : null}
-        </div>
-        <div>
-          PIVOT COLUMNS: {pivotColumns ? pivotColumns.join(', '): null}
-        </div>
-        <div>
-          VALUES CHOICES
-          {columnValuesChoice && Object.entries(columnValuesChoice).map(([col, values]) => (
-            <div key={col} className="ml-4">
-              {col}: {values.join(', ')}
-            </div>
-          ))}
-        </div>
+        
 
         <div className="m-5">
           {tableChoice && columnValuesChoice && <TableCard table={tableChoice} columnValues={columnValuesChoice} pivotColumns={pivotColumns}/>}

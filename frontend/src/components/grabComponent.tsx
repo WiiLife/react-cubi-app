@@ -1,82 +1,107 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useLayoutEffect } from "react";
 import type { MouseEvent, ReactNode, RefObject } from "react";
 
 type GrapComponentProps = {
+    col: string
     containerRef: RefObject<HTMLDivElement | null>;
-    colContainerRef: RefObject<HTMLDivElement | null>;
-    pivContainerRef: RefObject<HTMLDivElement | null>;
+    otherRef: RefObject<HTMLDivElement | null>;
     children: ReactNode;
+    index: number
+    togglePivotColumn: (col: string, method: "toggle" | "pivot" | "row") => void
 };
 
-export default function GrapComponent({ containerRef, colContainerRef, pivContainerRef, children }: GrapComponentProps) {
-    const grabComponentRef = useRef<HTMLDivElement>(null);
-    const [grabComponentPos, setGrabComponentPos] = useState<{x: number, y: number}>({x: 0, y: 0});
-    const dragState = useRef({ x: 0, y: 0 });
+export default function GrapComponent({ col, containerRef, otherRef, children, index, togglePivotColumn }: GrapComponentProps) {
+    const grabElementRef = useRef<HTMLDivElement>(null);
+    const [grabElementPos, setGrabElementPos] = useState<{x: number, y: number}>({x: 0, y: 0});
     const [dragging, setDragging] = useState<boolean>(false);
 
-    const onMouseDown = useCallback((e: MouseEvent<HTMLDivElement>) => {
-        if (!grabComponentRef.current || !containerRef.current) return
+    useLayoutEffect(() => {
+        if (!grabElementRef.current || !containerRef.current) return
+        const elemRect = grabElementRef.current.getBoundingClientRect()
+        const containerRect = containerRef.current.getBoundingClientRect()
+        const elemSize = {w: elemRect.width, h: elemRect.height}
 
-        const sectRect = containerRef.current.getBoundingClientRect()
-        setDragging(true);
-        dragState.current = {
-            x: e.clientX - sectRect.left - grabComponentPos.x,
-            y: e.clientY - sectRect.top - grabComponentPos.y
+        setGrabElementPos({
+            x: containerRect.left,
+            y: containerRect.top + (elemSize.h * index)
+        })
+
+    }, [index, containerRef])
+
+    const getCenterOfElement = (elemRef: React.RefObject<HTMLDivElement | null>, relative: boolean) => {
+        if (!elemRef.current) return { x: 0, y: 0 }
+        const elemRect = elemRef.current.getBoundingClientRect()
+
+        if (relative) {
+            const elemSize = {w: elemRect.width, h: elemRect.height}
+            return ({
+                x: elemSize.w / 2,
+                y: elemSize.h / 2
+            })
+        } else {
+            return ({
+                x: elemRect.x - elemRect.width / 2,
+                y: elemRect.y - elemRect.height / 2
+            })
         }
+    }
 
-    }, [grabComponentPos, containerRef])
+    const onMouseDown = useCallback(() => {
+        if (!grabElementRef.current || !containerRef.current) return
+        setDragging(true);
+    }, [containerRef])
 
     const onMouseMove = useCallback((e: MouseEvent<HTMLDivElement>) => {
         if (!dragging || !containerRef.current) return
 
-        const sectRect = containerRef.current.getBoundingClientRect()
-        setGrabComponentPos({
-            x: e.clientX - sectRect.left - dragState.current.x,
-            y: e.clientY - sectRect.top - dragState.current.y
+        const centerElem = getCenterOfElement(grabElementRef, true)
+        setGrabElementPos({
+            x: e.clientX - centerElem.x,
+            y: e.clientY - centerElem.y
         })
+
     }, [dragging, containerRef])
 
     const onMouseUp = () => {
+        if (!grabElementRef.current || !containerRef.current) return
         setDragging(false)
-    }
 
-    function snapToSection() {
-    
-        // snap to section has to happen onMouseUp
-        // currently the objects are on top of one other, need to modify onMouseDown to prevent that
-        // current snapToSection snaps object one on top of another, give it some clearance by the number of elements in the list
+        const containerRect = containerRef.current.getBoundingClientRect()
+        
+        const containerCenter = getCenterOfElement(containerRef, false);
+        const otherCenter = getCenterOfElement(otherRef, false);
+        const elmCenter = getCenterOfElement(grabElementRef, false);
 
-        if (!grabComponentRef.current || !containerRef.current || !colContainerRef.current || !pivContainerRef.current) {
-            return undefined;
+        const elemRect = grabElementRef.current.getBoundingClientRect()
+        const elemSize = {w: elemRect.width, h: elemRect.height}
+
+        if (
+            ((containerCenter.x - elmCenter.x) ** 2 + (containerCenter.y - elmCenter.y) ** 2) < 
+            ((otherCenter.x - elmCenter.x) ** 2 + (otherCenter.y - elmCenter.y) ** 2)
+        ) {
+            togglePivotColumn(col, "row")
+        } else {
+            togglePivotColumn(col, "pivot")
         }
 
-        const objRect = grabComponentRef.current.getBoundingClientRect();
-        const colSecRect = colContainerRef.current.getBoundingClientRect();
-        const pivSecRect = pivContainerRef.current.getBoundingClientRect();
-
-        const distToColSection = (colSecRect.x - objRect.x) ** 2 + (colSecRect.y - objRect.y) ** 2;
-        const distToPivSection = (pivSecRect.x - objRect.x) ** 2 + (pivSecRect.y - objRect.y) ** 2;
-
-        const closestRect = distToColSection < distToPivSection ? colSecRect : pivSecRect;
-        
-        return {
-            x: closestRect.x,
-            y: closestRect.y
-        };
+        setGrabElementPos({
+            x: containerRect.left,
+            y: containerRect.top + (elemSize.h * index)
+        })
     }
 
     return (
         <>
             <div
-                className="absolute"
-                ref={grabComponentRef}
-                onMouseDown={(e) => onMouseDown(e)}
+                className="absolute m-1"
+                ref={grabElementRef}
+                onMouseDown={() => onMouseDown()}
                 onMouseMove={(e) => onMouseMove(e)}
                 onMouseUp={onMouseUp}
                 style={{
                     position: "absolute",
-                    left: `${grabComponentPos.x}px`,
-                    top: `${grabComponentPos.y}px`,
+                    left: `${grabElementPos.x}px`,
+                    top: `${grabElementPos.y}px`,
                     cursor: dragging ? "grabbing" : "grab",
                 }}
             >

@@ -18,7 +18,8 @@ export default function ColumnFilter({ props, tableName }: {props: Props, tableN
         async function fetchColumnValues(tableName: string) {
             const res = await getColumnValues(tableName);
 
-            // set the inital column-values choice object
+            setRowColumns(Object.keys(res))
+            setPivotColumns([])
             setColumnValuesChoice(
                 Object.fromEntries(
                     Object.entries(res).map(([col, values]: [string, string[]]) => [
@@ -29,16 +30,9 @@ export default function ColumnFilter({ props, tableName }: {props: Props, tableN
                     ])
                 )
             )
-
-            // set the initial rowColumns
-            setRowColumns(Object.keys(res))
-
-            // set initial pivotColumns
-            setPivotColumns([])
         }
 
-        fetchColumnValues(tableName)
-        
+        fetchColumnValues(tableName)        
     }, [tableName])
 
     useEffect(() => {
@@ -96,34 +90,41 @@ export default function ColumnFilter({ props, tableName }: {props: Props, tableN
     return (
         <>
             <div 
-                className="flex min-h-80 relative"
+                className="flex min-h-96 min-w-2xl"
                 ref={fullSectionRef}
             >
-                <div 
-                    className="border rounded-md p-1 m-1"
-                    ref={columnSectionRef}
-                >
-                    row Column Section:
-                    {columnValuesChoice && rowColumns.map((col) => (
-                        <div key={`row-${col}`}>
-                            <GrapComponent containerRef={fullSectionRef} colContainerRef={columnSectionRef} pivContainerRef={pivotSectionRef}>
-                                <ColumnObject col={col} values={columnValuesChoice[col]} defaultSelected={true} setColValues={setColumnValues} togglePivotColumn={togglePivotColumn}/>
-                            </GrapComponent>
-                        </div>
-                    ))}
+                
+                <div className="flex-col min-w-1/2">
+                    <div>Rows</div>
+                    <div 
+                        className="border rounded-md p-1 w-full h-full"
+                        ref={columnSectionRef}
+                    >
+                        {columnValuesChoice && rowColumns.map((col, index) => (
+                            <div key={`row-${col}`}>
+                                <GrapComponent col={col} containerRef={columnSectionRef} otherRef={pivotSectionRef} index={index} togglePivotColumn={togglePivotColumn}>
+                                    <ColumnObject col={col} values={columnValuesChoice[col]} defaultSelected={true} setColValues={setColumnValues} togglePivotColumn={togglePivotColumn} />
+                                </GrapComponent>
+                            </div>
+                        ))}
+                    </div>
                 </div>
-                <div className="border rounded-md p-1 m-1"
-                    ref={pivotSectionRef}
-                >
-                    pivot Column Section:
-                    {columnValuesChoice && pivotColumns.map((col) => (
-                        <div key={`pivot-${col}`}>
-                            <GrapComponent containerRef={fullSectionRef} colContainerRef={columnSectionRef} pivContainerRef={pivotSectionRef}>
-                                <ColumnObject col={col} values={columnValuesChoice[col]} defaultSelected={false} setColValues={setColumnValues} togglePivotColumn={togglePivotColumn}/>
-                            </GrapComponent>
-                        </div>
-                    ))}
+                
+                <div className="flex-col min-w-1/2">
+                    <div>Columns</div>
+                    <div className="border rounded-md p-1 w-full h-full"
+                        ref={pivotSectionRef}
+                    >
+                        {columnValuesChoice && pivotColumns.map((col, index) => (
+                            <div key={`pivot-${col}`}>
+                                <GrapComponent col={col} containerRef={pivotSectionRef} otherRef={columnSectionRef} index={index} togglePivotColumn={togglePivotColumn}>
+                                    <ColumnObject col={col} values={columnValuesChoice[col]} defaultSelected={false} setColValues={setColumnValues} togglePivotColumn={togglePivotColumn}/>
+                                </GrapComponent>
+                            </div>
+                        ))}
+                    </div>
                 </div>
+                
             </div>            
         </>
     )
