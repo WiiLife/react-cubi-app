@@ -20,13 +20,13 @@ async def home():
     tables = await repository.tables()
     return tables
 
-# probably unnecessary
+# not currently used in gui
 @router.get("/tables/{table_name}")
 async def table(table_name: str):
     df = await repository.get_table(table_name)
     return Response(content=df.to_json(orient="records"), media_type="application/json")
 
-# probably unnecessary
+# not currently used in gui
 @router.post("/tables/{table_name}")
 async def select(table_name: str, payload: SelectBody = Body(...)):
     df = await repository.select(table_name, payload.columns)
