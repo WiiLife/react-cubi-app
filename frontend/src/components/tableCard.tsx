@@ -30,7 +30,7 @@ export default function TableCard({table, columnValues, pivotColumns}: {table: s
     return (
         <>
             <div>
-                {columns && <div className="p-4">
+                {columns && <div className="p-4 overflow-x-auto">
                     <table className="w-full border-collapse border border-gray-300">
                         <thead>
                             <tr className="bg-gray-100 dark:bg-gray-800">

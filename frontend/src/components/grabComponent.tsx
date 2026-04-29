@@ -14,19 +14,7 @@ export default function GrapComponent({ col, containerRef, otherRef, children, i
     const grabElementRef = useRef<HTMLDivElement>(null);
     const [grabElementPos, setGrabElementPos] = useState<{x: number, y: number}>({x: 0, y: 0});
     const [dragging, setDragging] = useState<boolean>(false);
-
-    useLayoutEffect(() => {
-        if (!grabElementRef.current || !containerRef.current) return
-        const elemRect = grabElementRef.current.getBoundingClientRect()
-        const containerRect = containerRef.current.getBoundingClientRect()
-        const elemSize = {w: elemRect.width, h: elemRect.height}
-
-        setGrabElementPos({
-            x: containerRect.left,
-            y: containerRect.top + (elemSize.h * index)
-        })
-
-    }, [index, containerRef])
+    const [draggingPos, setDraggingPos] = useState<{startX: number, startY: number}>({startX: 0, startY: 0})
 
     const getCenterOfElement = (elemRef: React.RefObject<HTMLDivElement | null>, relative: boolean) => {
         if (!elemRef.current) return { x: 0, y: 0 }
@@ -40,12 +28,49 @@ export default function GrapComponent({ col, containerRef, otherRef, children, i
             })
         } else {
             return ({
-                x: elemRect.x - elemRect.width / 2,
-                y: elemRect.y - elemRect.height / 2
+                x: elemRect.x + elemRect.width / 2,
+                y: elemRect.y + elemRect.height / 2
             })
         }
     }
 
+    const resetGrabElementPos = useCallback(() => {
+        if (!grabElementRef.current || !containerRef.current) return
+        const elemRect = grabElementRef.current.getBoundingClientRect()
+        const containerRect = containerRef.current.getBoundingClientRect()
+        const elemSize = {w: elemRect.width, h: elemRect.height}
+
+        setGrabElementPos({
+            x: containerRect.left + 3,
+            y: containerRect.top + (elemSize.h * index) + ((index + 1) * 3)
+        })
+
+        setDraggingPos({
+            startX: containerRect.left + 3,
+            startY: containerRect.top + (elemSize.h * index) + ((index + 1) * 3)
+        })
+
+    }, [index, containerRef])
+
+    const measureDistance = (startX: number, startY: number, endX: number, endY: number) => {
+        return Math.sqrt((startX - endX) ** 2 + (startY - endY) ** 2)
+    }
+
+    useLayoutEffect(() => {
+        resetGrabElementPos()
+        // this event listener is to check for window size according to device
+        window.addEventListener("resize", resetGrabElementPos)
+        // this event listener is to check current window size (it might change when elements change)
+        const resizeObserver = new ResizeObserver(resetGrabElementPos)
+        resizeObserver.observe(document.documentElement)
+
+        return () => {
+            window.removeEventListener("resize", resetGrabElementPos)
+            resizeObserver.disconnect()
+        }
+    }, [containerRef, otherRef, resetGrabElementPos])
+
+    
     const onMouseDown = useCallback(() => {
         if (!grabElementRef.current || !containerRef.current) return
         setDragging(true);
@@ -64,30 +89,22 @@ export default function GrapComponent({ col, containerRef, otherRef, children, i
 
     const onMouseUp = () => {
         if (!grabElementRef.current || !containerRef.current) return
-        setDragging(false)
+        setDragging(false);
 
-        const containerRect = containerRef.current.getBoundingClientRect()
-        
+        const distance = measureDistance(draggingPos.startX, draggingPos.startY, grabElementPos.x, grabElementPos.y);        
+        if (distance < 10) {resetGrabElementPos(); return;}
+
         const containerCenter = getCenterOfElement(containerRef, false);
         const otherCenter = getCenterOfElement(otherRef, false);
         const elmCenter = getCenterOfElement(grabElementRef, false);
 
-        const elemRect = grabElementRef.current.getBoundingClientRect()
-        const elemSize = {w: elemRect.width, h: elemRect.height}
+        const containerCenterDist = measureDistance(containerCenter.x, containerCenter.y, elmCenter.x, elmCenter.y);
+        const otherCenterDist = measureDistance(otherCenter.x, otherCenter.y, elmCenter.x, elmCenter.y);
 
-        if (
-            ((containerCenter.x - elmCenter.x) ** 2 + (containerCenter.y - elmCenter.y) ** 2) < 
-            ((otherCenter.x - elmCenter.x) ** 2 + (otherCenter.y - elmCenter.y) ** 2)
-        ) {
-            togglePivotColumn(col, "row")
-        } else {
-            togglePivotColumn(col, "pivot")
+        if (containerCenterDist > otherCenterDist) {
+            togglePivotColumn(col, "toggle");
         }
-
-        setGrabElementPos({
-            x: containerRect.left,
-            y: containerRect.top + (elemSize.h * index)
-        })
+        resetGrabElementPos();
     }
 
     return (
@@ -103,6 +120,7 @@ export default function GrapComponent({ col, containerRef, otherRef, children, i
                     left: `${grabElementPos.x}px`,
                     top: `${grabElementPos.y}px`,
                     cursor: dragging ? "grabbing" : "grab",
+                    zIndex: dragging ? 9999 : undefined
                 }}
             >
                 {children}

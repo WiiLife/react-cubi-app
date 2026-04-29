@@ -27,34 +27,37 @@ export default function ColumnObject({col, values, defaultSelected, setColValues
 
     return (
         <>
-            <div className={`${colSelected ? "bg-red-600": ""} flex w-fit p-1 rounded-md gap-1`}>
-                <button
-                    onClick={() => openDropdown ? setOpenDropdown(false) : setOpenDropdown(true)}
-                    className="border p-1 rounded-md flex justify-between gap-5"
-                >
-                    {col}
-                    {openDropdown ? <span className="rotate-90">{"<"}</span> : <span className="rotate-90">{">"}</span>}
-                </button>
-                {colSelected && <button
-                    onClick={() => setColSelected(false)}
-                    className="hover:bg-red-900 p-1 rounded-md"
-                >
-                    remove
-                </button>}
-            </div>
-            {openDropdown && <div className="relative">
-                <div className="absolute p-1 bg-(--bg) border rounded mt-3 z-10">
-                    {Object.entries(values).map(([val, selected]) => (
-                        <button
-                            key={val}
-                            className={`${selected ? "bg-red-600" : ""} hover:bg-gray-200 dark:hover:bg-gray-800 w-full text-start`}
-                            onClick={() => setColValues(col, val)}
-                        >
-                            {val}
-                        </button>
-                    ))}
+            <div className="relative">
+                <div className={`${colSelected ? "bg-red-600": "bg-(--bg)"} flex w-fit p-1 rounded-md gap-1`}>
+                    <button
+                        onClick={() => setOpenDropdown(!openDropdown)}
+                        className="border p-1 rounded-md flex justify-between gap-5"
+                    >
+                        {col}
+                        {openDropdown ? <span className="rotate-90">{"<"}</span> : <span className="rotate-90">{">"}</span>}
+                    </button>
+                    {colSelected && <button
+                        onClick={() => setColSelected(false)}
+                        className="hover:bg-red-900 p-1 rounded-md"
+                    >
+                        remove
+                    </button>}
                 </div>
-            </div>}
+                {openDropdown && <div>
+                    <div className="absolute p-1 bg-(--bg) border rounded mt-2 z-10">
+                        {Object.entries(values).map(([val, selected]) => (
+                            <button
+                                key={val}
+                                className={`${selected ? "bg-red-600" : ""} hover:bg-gray-200 dark:hover:bg-gray-800 w-full text-start`}
+                                onClick={() => setColValues(col, val)}
+                            >
+                                {val}
+                            </button>
+                        ))}
+                    </div>
+                </div>}
+            </div>
+            
         </>
     )
 }

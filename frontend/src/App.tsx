@@ -29,7 +29,7 @@ function App() {
 
   return (
     <>
-      <div className="h-screen flex flex-col max-w-3/4 mx-auto">
+      <div className="h-screen flex flex-col w-3/4 mx-auto">
           <div className="bg-red-600 pb-7 p-3 flex">
             <div>
               <div></div>
@@ -68,7 +68,7 @@ function App() {
         </div>
         
 
-        <div className="m-5">
+        <div className="m-5 max-w-full">
           {tableChoice && columnValuesChoice && <TableCard table={tableChoice} columnValues={columnValuesChoice} pivotColumns={pivotColumns}/>}
         </div>
 

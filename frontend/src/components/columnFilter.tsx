@@ -68,13 +68,19 @@ export default function ColumnFilter({ props, tableName }: {props: Props, tableN
     function togglePivotColumn( col: string, method: "toggle" | "pivot" | "row" ) {
         if (method === "toggle") {
             if (!pivotColumns.includes(col)) {
+                if (rowColumns.length == 1) return
                 setRowColumns((prev) => prev.filter((rowCol) => rowCol !== col));
                 setPivotColumns((prev) => [...prev, col]);
             } else {
                 setPivotColumns((prev) => prev.filter((pivotCol) => pivotCol !== col));
                 setRowColumns((prev) => [...prev, col]);
+
+                if (!columnValuesChoice || Object.entries(columnValuesChoice[col]).filter(([, selected]) => selected).length > 0) return
+                setColumnValues(col, Object.entries(columnValuesChoice[col]).filter((_, index) => index == 0)[0][0])
+
             }
         } if (method == "pivot") {
+            if (rowColumns.length == 1) return
             if (!pivotColumns.includes(col)) {
                 setRowColumns((prev) => prev.filter((rowCol) => rowCol !== col));
                 setPivotColumns((prev) => [...prev, col]);
@@ -82,7 +88,7 @@ export default function ColumnFilter({ props, tableName }: {props: Props, tableN
         } if (method == "row") {
             if (pivotColumns.includes(col)) {
                 setPivotColumns((prev) => prev.filter((pivotCol) => pivotCol !== col));
-                setRowColumns((prev) => [...prev, col]);
+                setRowColumns((prev) => [...prev, col]);                
             }
         }
     }    
