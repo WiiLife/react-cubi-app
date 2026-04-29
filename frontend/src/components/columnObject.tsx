@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 
-export default function ColumnObject({col, values, defaultSelected, setColValues, togglePivotColumn}: 
+export default function ColumnObject({col, values, cantRemoveCol, defaultSelected, setColValues, togglePivotColumn}: 
     {
         col: string, 
         values: Record<string, boolean>, 
+        cantRemoveCol: string | null,
         defaultSelected: boolean,
         setColValues: (col: string, value: string) => void,
         togglePivotColumn: (col: string, method: "toggle" | "pivot" | "row") => void
@@ -37,7 +38,7 @@ export default function ColumnObject({col, values, defaultSelected, setColValues
                         {openDropdown ? <span className="rotate-90">{"<"}</span> : <span className="rotate-90">{">"}</span>}
                     </button>
                     {colSelected && <button
-                        onClick={() => setColSelected(false)}
+                        onClick={() => cantRemoveCol !== col && setColSelected(false)}
                         className="hover:bg-red-900 p-1 rounded-md"
                     >
                         remove

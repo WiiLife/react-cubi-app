@@ -32,7 +32,7 @@ class Repository:
 
         self.client.register_clear_cache_callback(self._reset_cache)
 
-    def _format_list(self, values: List[str], quotes: str = "'") -> str:
+    def _format_list(self, values: List[str], quotes: str | None = None) -> str:
         if quotes == "'":
             return ', '.join(f"'{val}'" for val in values)
         if quotes == '"':
@@ -209,15 +209,6 @@ FROM read_csv('{str(files_path)}');
             if col_type not in (SQLTypes.INTEGER, SQLTypes.DOUBLE, SQLTypes.VARCHAR):
                 all_columns.append(str(row.name))
 
-        self.logger.debug(f"--------------------- all cols: {all_columns}")
-
-        # row_variables = selected_columns
-        # if column_variables:
-        #     await self._check_columns_exist(table, column_variables)
-        #     row_variables = list(
-        #         set(selected_columns) - set(column_variables) - {operation_column}
-        #     )
-
         pivot_columns = []
         if selected_columns != all_columns:
             pivot_columns = list(set(all_columns) - set(selected_columns) - {operation_column})
@@ -227,22 +218,50 @@ FROM read_csv('{str(files_path)}');
             pivot_columns.extend(column_variables)
             selected_columns = list(set(selected_columns) - set(pivot_columns))
 
+        values = []
         table_query = f'''
 SELECT *
 FROM {table}        
 '''
+        # filter_query = []
+        # for col_name, unique_values in columns.items():
+        #     filter_query.append(
+        #         f' "{col_name}" IN ({self._format_list(unique_values, quotes="'")})'
+        #     )
 
         filter_query = []
         for col_name, unique_values in columns.items():
-            filter_query.append(
-                f' "{col_name}" IN ({self._format_list(unique_values, quotes="'")})'
-            )
+            if col_name not in pivot_columns:
+                filter_query.append(
+                    f' "{col_name}" IN ({self._format_list(["?"] * len(unique_values))})'
+                )
+                values.extend(unique_values)
 
         table_query += " WHERE" + " AND ".join(filter_query)
 
-        on_query = ""
+        # on_query = ""
+        # if pivot_columns:
+        #     on_query += f"ON ({self._format_list(pivot_columns, quotes='"')})"
+
         if pivot_columns:
-            on_query += f"ON ({self._format_list(pivot_columns, quotes='"')})"
+            on_query = "ON "
+            pivot_query = []
+            for pivot_col in pivot_columns:
+                if pivot_col in columns:
+                    pivot_query.append(
+                        f' "{pivot_col}" IN ({self._format_list(["?"] * len(columns[pivot_col]))})'
+                    )
+                    values.extend(columns[pivot_col])
+                else:
+                    unique_pivot_column_values = await self._get_unique_values(table, pivot_col)
+                    pivot_query.append(
+                        f' "{pivot_col}" IN ({self._format_list(["?"] * len(unique_pivot_column_values))})'
+                    )
+                    values.extend(unique_pivot_column_values)
+
+            on_query += ", ".join(pivot_query)
+        else:
+            on_query = ""
 
         query = f"""
 PIVOT ({table_query})
@@ -252,9 +271,11 @@ GROUP BY {self._format_list(selected_columns, quotes='"')};
 """
 
         query = re.sub(r"\s+", " ", query).strip()
-        self.logger.debug(query)
+        self.logger.info(query)
+        self.logger.info(values)
         async with self.client.aquire() as conn:
-            res = await asyncio.to_thread(lambda: conn.sql(query).fetchdf())
+            # return pd.DataFrame()
+            res = await asyncio.to_thread(lambda: conn.execute(query, values).fetch_df())
         return res
 
     async def get_table(self, table: str) -> pd.DataFrame:

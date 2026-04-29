@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { getTable } from "../api/api"
 
 
 export default function TableCard({table, columnValues, pivotColumns}: {table: string, columnValues: Record<string, string[]>, pivotColumns: string[]}) {
     const [tableData, setTableData] = useState<Record<string, unknown>[] | null>(null);
     const [columns, setColumns] = useState<string[] | null>(null);
+    const prevColumnsRef = useRef<Record<string, string[]> | null>(null);
+    const prevPivotRef = useRef<string[] | null>(null);
 
     useEffect(() => {
         async function fetchTable() {
@@ -24,7 +26,11 @@ export default function TableCard({table, columnValues, pivotColumns}: {table: s
             }
         };
 
-        fetchTable();
+        if (prevColumnsRef.current !== columnValues || prevPivotRef.current !== pivotColumns) {
+            fetchTable()
+            prevColumnsRef.current = columnValues;
+            prevPivotRef.current = pivotColumns
+        }
     }, [table, columnValues, pivotColumns])
 
     return (

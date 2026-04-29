@@ -9,7 +9,8 @@ export default function ColumnFilter({ props, tableName }: {props: Props, tableN
     const [rowColumns, setRowColumns] = useState<string[]>([]);
     const [pivotColumns, setPivotColumns] = useState<string[]>([]);
     const [columnValuesChoice, setColumnValuesChoice] = useState<Record<string, Record<string, boolean>> | null>(null);
-    
+    const [cantRemoveCol, setCantRemoveCol] = useState<string | null>(null);
+
     const pivotSectionRef = useRef<HTMLDivElement | null>(null);
     const columnSectionRef = useRef<HTMLDivElement | null>(null);
     const fullSectionRef = useRef<HTMLDivElement | null>(null);
@@ -51,24 +52,28 @@ export default function ColumnFilter({ props, tableName }: {props: Props, tableN
     }, [columnValuesChoice, rowColumns, pivotColumns])
 
     function setColumnValues(col: string, value: string) {
+        
+        
         setColumnValuesChoice((prev) => {
             if (!prev) return prev;
 
             const prevColValues = prev[col] ?? {};
+            const toNotRemove = (cantRemoveCol === col) && (Object.entries(prevColValues).filter((value) => value[1]).length == 1)
             return {
                 ...prev,
                 [col]: {
                     ...prevColValues,
-                    [value]: !(prevColValues[value] ?? false)
+                    [value]: toNotRemove ? true : !(prevColValues[value] ?? false)
                 }
             };
         });
     }
 
     function togglePivotColumn( col: string, method: "toggle" | "pivot" | "row" ) {
+        setCantRemoveCol(null);
         if (method === "toggle") {
             if (!pivotColumns.includes(col)) {
-                if (rowColumns.length == 1) return
+                if (rowColumns.length == 1) {setCantRemoveCol(rowColumns[0]); return;}
                 setRowColumns((prev) => prev.filter((rowCol) => rowCol !== col));
                 setPivotColumns((prev) => [...prev, col]);
             } else {
@@ -80,7 +85,7 @@ export default function ColumnFilter({ props, tableName }: {props: Props, tableN
 
             }
         } if (method == "pivot") {
-            if (rowColumns.length == 1) return
+            if (rowColumns.length == 1) {setCantRemoveCol(rowColumns[0]); return;}
             if (!pivotColumns.includes(col)) {
                 setRowColumns((prev) => prev.filter((rowCol) => rowCol !== col));
                 setPivotColumns((prev) => [...prev, col]);
@@ -109,7 +114,7 @@ export default function ColumnFilter({ props, tableName }: {props: Props, tableN
                         {columnValuesChoice && rowColumns.map((col, index) => (
                             <div key={`row-${col}`}>
                                 <GrapComponent col={col} containerRef={columnSectionRef} otherRef={pivotSectionRef} index={index} togglePivotColumn={togglePivotColumn}>
-                                    <ColumnObject col={col} values={columnValuesChoice[col]} defaultSelected={true} setColValues={setColumnValues} togglePivotColumn={togglePivotColumn} />
+                                    <ColumnObject col={col} values={columnValuesChoice[col]} cantRemoveCol={cantRemoveCol} defaultSelected={true} setColValues={setColumnValues} togglePivotColumn={togglePivotColumn} />
                                 </GrapComponent>
                             </div>
                         ))}
@@ -124,7 +129,7 @@ export default function ColumnFilter({ props, tableName }: {props: Props, tableN
                         {columnValuesChoice && pivotColumns.map((col, index) => (
                             <div key={`pivot-${col}`}>
                                 <GrapComponent col={col} containerRef={pivotSectionRef} otherRef={columnSectionRef} index={index} togglePivotColumn={togglePivotColumn}>
-                                    <ColumnObject col={col} values={columnValuesChoice[col]} defaultSelected={false} setColValues={setColumnValues} togglePivotColumn={togglePivotColumn}/>
+                                    <ColumnObject col={col} values={columnValuesChoice[col]} cantRemoveCol={cantRemoveCol} defaultSelected={false} setColValues={setColumnValues} togglePivotColumn={togglePivotColumn}/>
                                 </GrapComponent>
                             </div>
                         ))}

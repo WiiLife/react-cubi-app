@@ -30,15 +30,16 @@ function App() {
   return (
     <>
       <div className="h-screen flex flex-col w-3/4 mx-auto">
-          <div className="bg-red-600 pb-7 p-3 flex">
+          <div className="bg-red-600 pb-7 p-3 flex justify-between">
             <div>
-              <div></div>
               <h1>REACT CUBI APP</h1>
               <p className="max-w-1/2 p-2">this is a react application frontend with a python backend engine for the a cubi app first developed internally as an R shiny app for USTAT</p>
               <p className="flex font-bold gap-2">Backend running on:<a href={import.meta.env.VITE_API_URL} className="hover:text-neutral-300">{import.meta.env.VITE_API_URL}</a></p>
             </div>
-            <div className="p-3">
-              references
+            <div className="p-3 flex flex-col">
+              <p className="font-bold">related content:</p>
+              <a className="hover:text-neutral-300 ml-4 mt-2" href="https://gitlab.com/gibonet/cubiapp">https://gitlab.com/gibonet/cubiapp</a>
+              <a className="hover:text-neutral-300 ml-4 mt-1" href="https://gitlab.com/WiiLife/ckan-docker-data-portal-ustat">https://gitlab.com/WiiLife/ckan-docker-data-portal-ustat</a>
             </div>
           </div>
           
