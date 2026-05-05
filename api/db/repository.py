@@ -1,4 +1,5 @@
 from api.utils.logging import setup_logging
+from duckdb import DuckDBPyConnection
 from api.db.client import dbClient
 from pathlib import Path
 from typing import List
@@ -31,6 +32,10 @@ class Repository:
         self.tables_columns_cache: dict[str, pd.DataFrame] = {}
 
         self.client.register_clear_cache_callback(self._reset_cache)
+
+    def _count_query_n_rows(self, query: str) -> str:
+        new_query = f"SELECT COUNT(*) FROM ({query.split("LIMIT")[0]});"
+        return new_query
 
     def _format_list(self, values: List[str], quotes: str | None = None) -> str:
         if quotes == "'":
@@ -190,10 +195,12 @@ FROM read_csv('{str(files_path)}');
         self,
         table: str,
         columns: dict[str, list[str]],
+        row_limit,
+        row_offset,
         column_variables: list[str] | None = None,
         operation_column: str = "valore",
         operation: SQLOperation = SQLOperation.SUM,
-    ) -> pd.DataFrame:
+    ) -> tuple[pd.DataFrame, int]:
         selected_columns = list(columns.keys())
         await self._check_columns_exist(table, selected_columns)
 
@@ -210,13 +217,17 @@ FROM read_csv('{str(files_path)}');
                 all_columns.append(str(row.name))
 
         pivot_columns = []
-        if selected_columns != all_columns:
+        if set(selected_columns) != set(all_columns):
             pivot_columns = list(set(all_columns) - set(selected_columns) - {operation_column})
 
         if column_variables:
             await self._check_columns_exist(table, column_variables)
-            pivot_columns.extend(column_variables)
+            pivot_columns.extend(list(set(column_variables) - set(pivot_columns)))
             selected_columns = list(set(selected_columns) - set(pivot_columns))
+
+        self.logger.info(f"selected columns: {selected_columns}")
+        self.logger.info(f"all_columns: {all_columns}")
+        self.logger.info(f"pivot_columns: {pivot_columns}")
 
         values = []
         table_query = f'''
@@ -267,16 +278,27 @@ FROM {table}
 PIVOT ({table_query})
 {on_query}
 USING {operation.value}({operation_column}) 
-GROUP BY {self._format_list(selected_columns, quotes='"')};
+GROUP BY {self._format_list(selected_columns, quotes='"')}
+LIMIT {row_limit}
+OFFSET {row_offset}
 """
 
         query = re.sub(r"\s+", " ", query).strip()
         self.logger.info(query)
         self.logger.info(values)
+
         async with self.client.aquire() as conn:
             # return pd.DataFrame()
-            res = await asyncio.to_thread(lambda: conn.execute(query, values).fetch_df())
-        return res
+            res = await asyncio.to_thread(
+                lambda: conn.execute(query, values).fetch_df()
+            )
+
+            n_rows_query = self._count_query_n_rows(query)
+            res_n_rows = await asyncio.to_thread(
+                lambda: conn.execute(n_rows_query, values).fetch_df()
+            )
+            self.logger.info(f"---------------> {int(res_n_rows.values[0][0])}")
+        return res, int(res_n_rows.values[0][0])
 
     async def get_table(self, table: str) -> pd.DataFrame:
         res = await self._check_table_exists(table)

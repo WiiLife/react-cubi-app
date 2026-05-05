@@ -29,11 +29,22 @@ export function getColumnValues(table: string): Promise<Record<string, string[]>
     return api(`${BACKEND}/api/tables/${table}/columns-values`)
 }
 
-export function getTable({table, columns, pivot_cols} : 
-    {table: string, columns: Record<string, string[]>, pivot_cols: string[]}
-): Promise<Record<string, unknown>[]> {
+export function getTable({table, columns, pivot_cols, rowLimit, rowOffset} : 
+    {
+        table: string, 
+        columns: Record<string, string[]>, 
+        pivot_cols: string[],
+        rowLimit: number,
+        rowOffset: number
+    }
+): Promise<{data: Record<string, unknown>[], n_rows: number}> {
     return api(`${BACKEND}/api/tables/${table}/pivot`, {
         method: "POST",
-        body: JSON.stringify({columns, column_variables: pivot_cols})
+        body: JSON.stringify({
+            columns, 
+            column_variables: pivot_cols, 
+            row_limit: rowLimit, 
+            row_offset: rowOffset
+        })
     })
 } 
