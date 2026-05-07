@@ -10,6 +10,7 @@ export default function TableCard({table, columnValues, pivotColumns}: {
     ){
     const [tableData, setTableData] = useState<Record<string, unknown>[] | null>(null);
     const [columns, setColumns] = useState<string[] | null>(null);
+    const prevTable = useRef<string>(null);
     const prevColumnsRef = useRef<Record<string, string[]> | null>(null);
     const prevPivotRef = useRef<string[] | null>(null);
     const prevOffsetRef = useRef<number>(null);
@@ -17,6 +18,16 @@ export default function TableCard({table, columnValues, pivotColumns}: {
     const [rowLimit,] = useState<number>(20);
     const [rowOffset, setRowOffset] = useState<number>(0);
     const [nRows, setNRows] = useState<number>(0);
+    const triggerUseEffect = useRef<boolean>(true);
+
+    useEffect(() => {
+         // eslint-disable-next-line react-hooks/exhaustive-deps
+         if (prevTable.current !== table) {
+            setRowOffset(0);
+            prevTable.current = table;
+            triggerUseEffect.current = false;
+        }
+    }, [table])
 
     useEffect(() => {
         async function fetchTable() {
@@ -37,7 +48,7 @@ export default function TableCard({table, columnValues, pivotColumns}: {
                 setColumns(Object.keys(res.data[0]))
                 setNRows(res.n_rows)
             }
-        };
+        };       
 
         if (
             prevColumnsRef.current !== columnValues || 
@@ -45,11 +56,14 @@ export default function TableCard({table, columnValues, pivotColumns}: {
             prevOffsetRef.current !== rowOffset ||
             prevLimitRef.current !== rowLimit
         ) {
-            fetchTable()
+            if (triggerUseEffect.current) {
+                fetchTable()
+            }
             prevColumnsRef.current = columnValues;
             prevPivotRef.current = pivotColumns;
             prevOffsetRef.current = rowOffset;
             prevLimitRef.current = rowLimit;
+            triggerUseEffect.current = true;
         }
         
     }, [table, columnValues, pivotColumns, rowLimit, rowOffset])

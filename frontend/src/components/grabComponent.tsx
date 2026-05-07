@@ -79,13 +79,18 @@ export default function GrapComponent({ col, containerRef, otherRef, children, i
     const onMouseMove = useCallback((e: MouseEvent<HTMLDivElement>) => {
         if (!dragging || !containerRef.current) return
 
+        if (
+            (Math.sqrt((draggingPos.startX - e.clientX) ** 2) +
+            Math.sqrt((draggingPos.startY - e.clientY) ** 2)) < 70
+        ) return
+
         const centerElem = getCenterOfElement(grabElementRef, true)
         setGrabElementPos({
             x: e.clientX - centerElem.x,
             y: e.clientY - centerElem.y
         })
 
-    }, [dragging, containerRef])
+    }, [dragging, containerRef, draggingPos])
 
     const onMouseUp = () => {
         if (!grabElementRef.current || !containerRef.current) return
