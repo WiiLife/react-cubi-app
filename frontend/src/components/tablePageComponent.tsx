@@ -1,3 +1,5 @@
+import type { Dispatch, SetStateAction } from "react";
+
 export default function TablePageComponent(
     {
         TotNRows, 
@@ -9,29 +11,26 @@ export default function TablePageComponent(
         TotNRows: number, 
         rowLimit: number,
         rowOffset: number,
-        setRowOffset: (rowOffset: number) => void
+        setRowOffset: Dispatch<SetStateAction<number>>
     }) 
 {
-
-    console.log("Page: ", Math.floor(rowOffset / rowLimit) + 1)
-    console.log("Total Pages: ", Math.ceil(TotNRows / rowLimit))
-    console.log(`row offset: ${rowOffset}`)
-
     return (
         <>
-            <button
-                className="mr-1 bg-green-600"
-                onClick={() => setRowOffset(0)}
-            >
-                {"<"}
-            </button>
-            Page: {Math.floor(rowOffset / rowLimit) + 1} / {Math.ceil(TotNRows / rowLimit)}
-            <button
-                className="ml-1 bg-green-600"
-                onClick={() => setRowOffset(rowOffset + rowOffset)}
-            >
-                {">"}
-            </button>
+            <div>
+                <button
+                    className="mr-1 p-1"
+                    onClick={() => setRowOffset(Math.max(rowOffset - rowLimit, 0))}
+                > 
+                    {"<"}
+                </button>
+                Page: {Math.floor(rowOffset / rowLimit) + 1} / {Math.ceil(TotNRows / rowLimit)}
+                <button
+                    className="ml-1 p-1"
+                    onClick={() => setRowOffset(Math.min(rowOffset + rowLimit, Math.max(TotNRows - (TotNRows % rowLimit), 0)))}
+                >
+                    {">"}
+                </button>
+            </div>
         </>
     )
 }

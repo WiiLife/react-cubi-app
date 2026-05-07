@@ -69,7 +69,7 @@ function App() {
         </div>
         
 
-        <div className="m-5 max-w-full">
+        <div className="m-5">
           {tableChoice && columnValuesChoice && <TableCard table={tableChoice} columnValues={columnValuesChoice} pivotColumns={pivotColumns}/>}
         </div>
 

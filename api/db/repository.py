@@ -297,7 +297,6 @@ OFFSET {row_offset}
             res_n_rows = await asyncio.to_thread(
                 lambda: conn.execute(n_rows_query, values).fetch_df()
             )
-            self.logger.info(f"---------------> {int(res_n_rows.values[0][0])}")
         return res, int(res_n_rows.values[0][0])
 
     async def get_table(self, table: str) -> pd.DataFrame:
