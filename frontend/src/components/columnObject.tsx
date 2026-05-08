@@ -39,9 +39,7 @@ export default function ColumnObject({col, values, cantRemoveCol, defaultSelecte
             }
         }
         document.addEventListener('click', handleClickOutside);
-
-        // returned values form a useEffect with no dependecies runs only at unmount
-        // so the event listener gets removed when we unmount the dom
+        
         return () => {
             document.removeEventListener('click', handleClickOutside)
         };
@@ -62,9 +60,15 @@ export default function ColumnObject({col, values, cantRemoveCol, defaultSelecte
     return (
         <>
             <div className="relative" ref={dropDownRef}>
-                <div className={`${colSelected ? "bg-red-600": "bg-(--bg)"} flex w-fit p-1 rounded-md gap-1`}>
+                <div className={`${colSelected ? "bg-red-600": "bg-gray-700"} flex items-center w-fit p-1 rounded-md gap-1`}>
+                    <div>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="bi bi-grip-vertical w-6 h-6" viewBox="0 0 16 16">
+                            <path d="M7 2a1 1 0 1 1-2 0 1 1 0 0 1 2 0m3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0M7 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0m3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0M7 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0m3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0m-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0m3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0m-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0m3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+                        </svg>
+                    </div>
                     <button
                         onClick={() => setOpenDropdown(!openDropdown)}
+                        onMouseDown={(e) => e.stopPropagation()}
                         className="border p-1 rounded-md flex justify-between gap-5"
                     >
                         {col}
@@ -72,6 +76,7 @@ export default function ColumnObject({col, values, cantRemoveCol, defaultSelecte
                     </button>
                     {colSelected && <button
                         onClick={() => cantRemoveCol !== col && setColSelected(false)}
+                        onMouseDown={(e) => e.stopPropagation()}
                         className="hover:bg-red-900 p-1 rounded-md"
                     >
                         remove
@@ -83,18 +88,21 @@ export default function ColumnObject({col, values, cantRemoveCol, defaultSelecte
                             className="hover:bg-gray-200 dark:hover:bg-gray-800 text-start"
                             placeholder="search"
                             onChange={(e) => search(e.target.value)}
+                            onMouseDown={(e) => e.stopPropagation()}
                             ref={searchRef}
                         />
                         <div className="flex justify-between gap-1 m-1">
                             <button
                                 className="hover:bg-gray-200 dark:hover:bg-gray-800 text-start"
                                 onClick={() => selectAll()}
+                                onMouseDown={(e) => e.stopPropagation()}
                             >
                                 select all
                             </button>
                             <button
                                 className="hover:bg-gray-200 dark:hover:bg-gray-800 text-start"
                                 onClick={() => unSelectAll()}
+                                onMouseDown={(e) => e.stopPropagation()}
                             >
                                 unselect all
                             </button>
@@ -104,6 +112,7 @@ export default function ColumnObject({col, values, cantRemoveCol, defaultSelecte
                                 key={val}
                                 className={`${selected ? "bg-red-600" : ""} hover:bg-gray-200 dark:hover:bg-gray-800 w-full text-start`}
                                 onClick={() => setColValues(col, val)}
+                                onMouseDown={(e) => e.stopPropagation()}
                             >
                                 {val}
                             </button>

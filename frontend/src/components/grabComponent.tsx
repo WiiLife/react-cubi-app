@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useLayoutEffect } from "react";
+import { useRef, useState, useCallback, useLayoutEffect} from "react";
 import type { MouseEvent, ReactNode, RefObject } from "react";
 
 type GrapComponentProps = {
@@ -14,7 +14,7 @@ export default function GrapComponent({ col, containerRef, otherRef, children, i
     const grabElementRef = useRef<HTMLDivElement>(null);
     const [grabElementPos, setGrabElementPos] = useState<{x: number, y: number}>({x: 0, y: 0});
     const [dragging, setDragging] = useState<boolean>(false);
-    const [draggingPos, setDraggingPos] = useState<{startX: number, startY: number}>({startX: 0, startY: 0})
+    const draggingRef = useRef<{startX: number, startY: number}>({startX: 0, startY: 0});
 
     const getCenterOfElement = (elemRef: React.RefObject<HTMLDivElement | null>, relative: boolean) => {
         if (!elemRef.current) return { x: 0, y: 0 }
@@ -45,10 +45,9 @@ export default function GrapComponent({ col, containerRef, otherRef, children, i
             y: containerRect.top + (elemSize.h * index) + ((index + 1) * 3)
         })
 
-        setDraggingPos({
-            startX: containerRect.left + 3,
-            startY: containerRect.top + (elemSize.h * index) + ((index + 1) * 3)
-        })
+        if (grabElementRef.current) {
+            grabElementRef.current.style.transform = "none";
+        }   
 
     }, [index, containerRef])
 
@@ -58,9 +57,7 @@ export default function GrapComponent({ col, containerRef, otherRef, children, i
 
     useLayoutEffect(() => {
         resetGrabElementPos()
-        // this event listener is to check for window size according to device
         window.addEventListener("resize", resetGrabElementPos)
-        // this event listener is to check current window size (it might change when elements change)
         const resizeObserver = new ResizeObserver(resetGrabElementPos)
         resizeObserver.observe(document.documentElement)
 
@@ -69,35 +66,21 @@ export default function GrapComponent({ col, containerRef, otherRef, children, i
             resizeObserver.disconnect()
         }
     }, [containerRef, otherRef, resetGrabElementPos])
-
     
-    const onMouseDown = useCallback(() => {
-        if (!grabElementRef.current || !containerRef.current) return
+    const onMouseDown = useCallback((e: MouseEvent<HTMLDivElement>) => {
+        if (!grabElementRef.current || !draggingRef.current|| !containerRef.current) return
+        e.preventDefault();
+        e.stopPropagation();
         setDragging(true);
+        draggingRef.current = {
+            startX: e.clientX,
+            startY: e.clientY
+        }
     }, [containerRef])
 
-    const onMouseMove = useCallback((e: MouseEvent<HTMLDivElement>) => {
-        if (!dragging || !containerRef.current) return
-
-        if (
-            (Math.sqrt((draggingPos.startX - e.clientX) ** 2) +
-            Math.sqrt((draggingPos.startY - e.clientY) ** 2)) < 70
-        ) return
-
-        const centerElem = getCenterOfElement(grabElementRef, true)
-        setGrabElementPos({
-            x: e.clientX - centerElem.x,
-            y: e.clientY - centerElem.y
-        })
-
-    }, [dragging, containerRef, draggingPos])
-
-    const onMouseUp = () => {
+    const onMouseUp = useCallback(() => {
         if (!grabElementRef.current || !containerRef.current) return
         setDragging(false);
-
-        const distance = measureDistance(draggingPos.startX, draggingPos.startY, grabElementPos.x, grabElementPos.y);        
-        if (distance < 10) {resetGrabElementPos(); return;}
 
         const containerCenter = getCenterOfElement(containerRef, false);
         const otherCenter = getCenterOfElement(otherRef, false);
@@ -110,16 +93,30 @@ export default function GrapComponent({ col, containerRef, otherRef, children, i
             togglePivotColumn(col, "toggle");
         }
         resetGrabElementPos();
-    }
+    }, [col, containerRef, otherRef, resetGrabElementPos, togglePivotColumn])
+
+    const onMouseMove = useCallback((e: MouseEvent<HTMLDivElement>) => {
+        if (!dragging || !draggingRef.current || !grabElementRef.current) return
+
+        const deltaX = e.clientX - draggingRef.current.startX;
+        const deltaY = e.clientY - draggingRef.current.startY;
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        
+        if (distance < 10) return
+
+        grabElementRef.current.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+
+    }, [dragging, draggingRef])
 
     return (
         <>
             <div
                 className="absolute m-1"
                 ref={grabElementRef}
-                onMouseDown={() => onMouseDown()}
+                onMouseDown={(e) => onMouseDown(e)}
                 onMouseMove={(e) => onMouseMove(e)}
                 onMouseUp={onMouseUp}
+                onMouseLeave={onMouseUp}
                 style={{
                     position: "absolute",
                     left: `${grabElementPos.x}px`,

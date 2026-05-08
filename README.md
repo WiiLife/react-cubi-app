@@ -59,7 +59,7 @@ Other than the api endpoints the backend features:
   - ability to insert new csv files to the duckDB database  
 
 
-author: William Ambrosetti
+developer: William Ambrosetti
 
 references: 
   - [ckan docker project](https://gitlab.com/WiiLife/ckan-docker-data-portal-ustat)
